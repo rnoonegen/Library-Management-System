@@ -79,7 +79,7 @@ export default function Transactions() {
     return <span className={`badge ${map[status] || 'badge-info'}`}>{status}</span>;
   };
 
-  const availableBooks = books.filter((b) => b.available_copies > 0);
+  const availableBooks = books.filter((b) => b.qty > 0);
   const activeMembers = members.filter((m) => m.status === 'active');
 
   return (
@@ -152,7 +152,7 @@ export default function Transactions() {
                 <option value="">Select a book</option>
                 {availableBooks.map((book) => (
                   <option key={book.id} value={book.id}>
-                    {book.title} ({book.available_copies} available)
+                    {book.title} ({book.qty} available)
                   </option>
                 ))}
               </select>

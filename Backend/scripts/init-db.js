@@ -1,17 +1,20 @@
-const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const { getDbMode, isMySQLEnabled, getDbModeLabel } = require('../config/database');
-const { connectMySQL, getPool } = require('../db/connection');
+const { getDbMode, isMySQLEnabled, getMySQLConfig, getDbModeLabel } = require('../config/database');
 
-async function runSchema() {
+async function runSchema(mode) {
+  const config = getMySQLConfig();
   const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf8');
 
-  await connectMySQL();
-  const pool = getPool();
+  // For local setup, connect without database so CREATE DATABASE can run first
+  const connectionConfig =
+    mode === 'local' ? { ...config, database: undefined } : config;
+
+  const connection = await mysql.createConnection(connectionConfig);
 
   const statements = schema
     .split(';')
@@ -24,27 +27,27 @@ async function runSchema() {
     });
 
   for (const statement of statements) {
-    await pool.query(statement);
+    await connection.query(statement);
   }
+
+  await connection.end();
 }
 
 async function main() {
   const mode = getDbMode();
 
   if (!isMySQLEnabled()) {
-    console.error('Set DB_PROFILE=local or DB_PROFILE=online in backend/.env before running this script.');
+    console.error('Create backend/.env from .env.local.example (not .env.example).');
+    console.error('Set DB_PROFILE=local and your MySQL password, then run again.');
     process.exit(1);
   }
 
   try {
-    await runSchema();
+    await runSchema(mode);
     console.log(`Database schema applied successfully (${getDbModeLabel()}).`);
   } catch (err) {
     console.error('Failed to apply schema:', err.message);
     process.exit(1);
-  } finally {
-    const pool = getPool();
-    if (pool) await pool.end();
   }
 }
 

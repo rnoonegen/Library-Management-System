@@ -24,9 +24,9 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { title, author } = req.body;
-    if (!title || !author) {
-      return res.status(400).json({ error: 'Title and author are required' });
+    const { title, author, isbn } = req.body;
+    if (!title || !author || !isbn) {
+      return res.status(400).json({ error: 'ISBN, title, and author are required' });
     }
     const book = await libraryService.createBook(req.body);
     res.status(201).json(book);

@@ -24,26 +24,24 @@ async function getBookById(id) {
 }
 
 async function createBook(data) {
-  const { title, author, isbn, category, total_copies, published_year } = data;
-  const copies = parseInt(total_copies, 10) || 1;
+  const { title, author, isbn, publisher, qty } = data;
+  const quantity = parseInt(qty, 10) || 1;
 
   if (useMySQL()) {
     const [result] = await getPool().query(
-      'INSERT INTO books (title, author, isbn, category, total_copies, available_copies, published_year) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [title, author, isbn || null, category || null, copies, copies, published_year || null]
+      'INSERT INTO books (isbn, title, publisher, author, qty) VALUES (?, ?, ?, ?, ?)',
+      [isbn, title, publisher || null, author, quantity]
     );
     return getBookById(result.insertId);
   }
 
   const book = {
     id: memoryStore.nextBookId(),
+    isbn,
     title,
+    publisher: publisher || null,
     author,
-    isbn: isbn || null,
-    category: category || null,
-    total_copies: copies,
-    available_copies: copies,
-    published_year: published_year || null,
+    qty: quantity,
   };
   memoryStore.books.push(book);
   return book;
@@ -53,24 +51,21 @@ async function updateBook(id, data) {
   const existing = await getBookById(id);
   if (!existing) return null;
 
-  const title = data.title ?? existing.title;
-  const author = data.author ?? existing.author;
   const isbn = data.isbn ?? existing.isbn;
-  const category = data.category ?? existing.category;
-  const published_year = data.published_year ?? existing.published_year;
-  const total_copies = parseInt(data.total_copies ?? existing.total_copies, 10);
-  const borrowed = existing.total_copies - existing.available_copies;
-  const available_copies = Math.max(0, total_copies - borrowed);
+  const title = data.title ?? existing.title;
+  const publisher = data.publisher ?? existing.publisher;
+  const author = data.author ?? existing.author;
+  const qty = parseInt(data.qty ?? existing.qty, 10);
 
   if (useMySQL()) {
     await getPool().query(
-      'UPDATE books SET title=?, author=?, isbn=?, category=?, total_copies=?, available_copies=?, published_year=? WHERE id=?',
-      [title, author, isbn, category, total_copies, available_copies, published_year, id]
+      'UPDATE books SET isbn=?, title=?, publisher=?, author=?, qty=? WHERE id=?',
+      [isbn, title, publisher, author, qty, id]
     );
     return getBookById(id);
   }
 
-  Object.assign(existing, { title, author, isbn, category, total_copies, available_copies, published_year });
+  Object.assign(existing, { isbn, title, publisher, author, qty });
   return existing;
 }
 
@@ -188,7 +183,7 @@ async function borrowBook({ book_id, member_id, borrow_date, due_date }) {
   if (!book) throw new Error('Book not found');
   if (!member) throw new Error('Member not found');
   if (member.status !== 'active') throw new Error('Member is not active');
-  if (book.available_copies < 1) throw new Error('No copies available');
+  if (book.qty < 1) throw new Error('No copies available');
 
   if (useMySQL()) {
     const connection = await getPool().getConnection();
@@ -198,7 +193,7 @@ async function borrowBook({ book_id, member_id, borrow_date, due_date }) {
         'INSERT INTO transactions (book_id, member_id, borrow_date, due_date, status) VALUES (?, ?, ?, ?, ?)',
         [book_id, member_id, borrow_date, due_date, 'borrowed']
       );
-      await connection.query('UPDATE books SET available_copies = available_copies - 1 WHERE id = ?', [book_id]);
+      await connection.query('UPDATE books SET qty = qty - 1 WHERE id = ?', [book_id]);
       await connection.commit();
       const [rows] = await connection.query(
         `SELECT t.*, b.title AS book_title, m.name AS member_name FROM transactions t
@@ -223,7 +218,7 @@ async function borrowBook({ book_id, member_id, borrow_date, due_date }) {
     return_date: null,
     status: 'borrowed',
   };
-  book.available_copies -= 1;
+  book.qty -= 1;
   memoryStore.transactions.push(transaction);
   return memoryStore.enrichTransaction(transaction);
 }
@@ -245,7 +240,7 @@ async function returnBook(transactionId) {
         'UPDATE transactions SET return_date = ?, status = ? WHERE id = ?',
         [returnDate, 'returned', transactionId]
       );
-      await connection.query('UPDATE books SET available_copies = available_copies + 1 WHERE id = ?', [
+      await connection.query('UPDATE books SET qty = qty + 1 WHERE id = ?', [
         transaction.book_id,
       ]);
       await connection.commit();
@@ -272,7 +267,7 @@ async function returnBook(transactionId) {
   const book = memoryStore.getBookById(transaction.book_id);
   transaction.return_date = new Date().toISOString().split('T')[0];
   transaction.status = 'returned';
-  if (book) book.available_copies += 1;
+  if (book) book.qty += 1;
   return memoryStore.enrichTransaction(transaction);
 }
 
@@ -284,10 +279,13 @@ async function getDashboardStats() {
   const activeBorrows = allTransactions.filter((t) => t.status === 'borrowed' || t.status === 'overdue');
   const overdue = allTransactions.filter((t) => t.status === 'overdue');
 
+  const availableCopies = allBooks.reduce((sum, b) => sum + b.qty, 0);
+  const borrowedCopies = activeBorrows.length;
+
   return {
     totalBooks: allBooks.length,
-    totalCopies: allBooks.reduce((sum, b) => sum + b.total_copies, 0),
-    availableCopies: allBooks.reduce((sum, b) => sum + b.available_copies, 0),
+    totalCopies: availableCopies + borrowedCopies,
+    availableCopies,
     totalMembers: allMembers.length,
     activeMembers: allMembers.filter((m) => m.status === 'active').length,
     activeBorrows: activeBorrows.length,

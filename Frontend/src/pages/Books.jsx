@@ -3,12 +3,11 @@ import { api } from '../api';
 import Modal, { useModal } from '../components/Modal';
 
 const emptyBook = {
-  title: '',
-  author: '',
   isbn: '',
-  category: '',
-  total_copies: 1,
-  published_year: '',
+  title: '',
+  publisher: '',
+  author: '',
+  qty: 1,
 };
 
 export default function Books() {
@@ -40,12 +39,11 @@ export default function Books() {
 
   const openEdit = (book) => {
     setForm({
-      title: book.title,
-      author: book.author,
       isbn: book.isbn || '',
-      category: book.category || '',
-      total_copies: book.total_copies,
-      published_year: book.published_year || '',
+      title: book.title,
+      publisher: book.publisher || '',
+      author: book.author,
+      qty: book.qty,
     });
     setEditingId(book.id);
     modal.open();
@@ -57,8 +55,7 @@ export default function Books() {
     try {
       const payload = {
         ...form,
-        total_copies: parseInt(form.total_copies, 10),
-        published_year: form.published_year ? parseInt(form.published_year, 10) : null,
+        qty: parseInt(form.qty, 10),
       };
       if (editingId) {
         await api.updateBook(editingId, payload);
@@ -106,26 +103,24 @@ export default function Books() {
             <table>
               <thead>
                 <tr>
-                  <th>Title</th>
-                  <th>Author</th>
                   <th>ISBN</th>
-                  <th>Category</th>
-                  <th>Copies</th>
-                  <th>Available</th>
+                  <th>Title</th>
+                  <th>Publisher</th>
+                  <th>Author</th>
+                  <th>Qty</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {books.map((book) => (
                   <tr key={book.id}>
+                    <td>{book.isbn}</td>
                     <td>{book.title}</td>
+                    <td>{book.publisher || '—'}</td>
                     <td>{book.author}</td>
-                    <td>{book.isbn || '—'}</td>
-                    <td>{book.category || '—'}</td>
-                    <td>{book.total_copies}</td>
                     <td>
-                      <span className={book.available_copies > 0 ? 'badge badge-success' : 'badge badge-danger'}>
-                        {book.available_copies}
+                      <span className={book.qty > 0 ? 'badge badge-success' : 'badge badge-danger'}>
+                        {book.qty}
                       </span>
                     </td>
                     <td>
@@ -150,41 +145,29 @@ export default function Books() {
         <Modal title={editingId ? 'Edit Book' : 'Add Book'} onClose={modal.close}>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
+              <label>ISBN *</label>
+              <input value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} required />
+            </div>
+            <div className="form-group">
               <label>Title *</label>
               <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label>Publisher</label>
+              <input value={form.publisher} onChange={(e) => setForm({ ...form, publisher: e.target.value })} />
             </div>
             <div className="form-group">
               <label>Author *</label>
               <input value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} required />
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>ISBN</label>
-                <input value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Category</label>
-                <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Total Copies</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.total_copies}
-                  onChange={(e) => setForm({ ...form, total_copies: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Published Year</label>
-                <input
-                  type="number"
-                  value={form.published_year}
-                  onChange={(e) => setForm({ ...form, published_year: e.target.value })}
-                />
-              </div>
+            <div className="form-group">
+              <label>Qty</label>
+              <input
+                type="number"
+                min="0"
+                value={form.qty}
+                onChange={(e) => setForm({ ...form, qty: e.target.value })}
+              />
             </div>
             <div className="form-actions">
               <button type="button" className="btn-secondary" onClick={modal.close}>

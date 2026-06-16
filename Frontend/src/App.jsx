@@ -1,18 +1,13 @@
-import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Books from './pages/Books';
-import Members from './pages/Members';
-import Transactions from './pages/Transactions';
-import { api } from './api';
+import Layout from './components/layout/Layout';
+import Dashboard from './pages/Dashboard/Dashboard';
+import Books from './pages/Books/Books';
+import Members from './pages/Members/Members';
+import Transactions from './pages/Transactions/Transactions';
+import { useDbMode } from './hooks/useDbMode';
 
 export default function App() {
-  const [dbMode, setDbMode] = useState('memory');
-
-  useEffect(() => {
-    api.getHealth().then((data) => setDbMode(data.dbMode)).catch(() => {});
-  }, []);
+  const dbMode = useDbMode();
 
   return (
     <BrowserRouter>

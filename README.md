@@ -1,6 +1,6 @@
 # Library Management System
 
-Web application for managing books, members, and borrow/return transactions.
+Web application for managing books, users, and borrow/return transactions.
 
 **Stack:** React (frontend) · Node.js/Express (backend) · MySQL (database)
 
@@ -111,7 +111,7 @@ DB_PROFILE=memory   # no MySQL
 
 - **Dashboard** — library stats overview
 - **Books** — add, edit, delete books
-- **Members** — manage library members
+- **Users** — manage teachers and students
 - **Borrow / Return** — loan books and process returns
 
 ## API Endpoints
@@ -122,8 +122,8 @@ DB_PROFILE=memory   # no MySQL
 | GET | `/api/dashboard/stats` | Dashboard statistics |
 | GET/POST | `/api/books` | List / create books |
 | PUT/DELETE | `/api/books/:id` | Update / delete book |
-| GET/POST | `/api/members` | List / create members |
-| PUT/DELETE | `/api/members/:id` | Update / delete member |
+| GET/POST | `/api/admin/users` | List / create users |
+| PUT/DELETE | `/api/admin/users/:id` | Update / delete user |
 | GET | `/api/transactions` | List transactions |
 | POST | `/api/transactions/borrow` | Borrow a book |
 | POST | `/api/transactions/:id/return` | Return a book |

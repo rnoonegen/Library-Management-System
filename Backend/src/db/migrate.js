@@ -1,4 +1,8 @@
+const bcrypt = require("bcrypt");
 const { getPool } = require("../config/connection");
+
+const ADMIN_PASSWORD = "Admin@123";
+const MIGRATION_TEMP_PASSWORD = "Temp@123";
 
 async function runMigrations() {
   const pool = getPool();
@@ -20,22 +24,60 @@ async function runMigrations() {
   `);
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS members (
+    CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL,
+      username VARCHAR(20) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'teacher', 'student')),
+      user_code VARCHAR(10) UNIQUE,
+      name VARCHAR(255),
+      email VARCHAR(255),
       phone VARCHAR(50),
       address TEXT,
-      membership_date DATE NOT NULL,
-      status VARCHAR(20) NOT NULL DEFAULT 'active'
+      grade_level VARCHAR(50),
+      department VARCHAR(100),
+      joined_date DATE,
+      status VARCHAR(20) NOT NULL DEFAULT 'active',
+      must_change_password BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS role VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS user_code VARCHAR(10),
+      ADD COLUMN IF NOT EXISTS name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS email VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS phone VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS address TEXT,
+      ADD COLUMN IF NOT EXISTS grade_level VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS department VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS joined_date DATE,
+      ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active',
+      ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  await pool.query(`
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check
+  `);
+  await pool.query(`
+    ALTER TABLE users ADD CONSTRAINT users_role_check
+      CHECK (role IN ('admin', 'teacher', 'student'))
+  `);
+
+  await migrateLegacyUserSchema(pool);
+  await ensureTransactionsUserId(pool);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS transactions (
       id SERIAL PRIMARY KEY,
       book_id INTEGER NOT NULL REFERENCES books(id),
-      member_id INTEGER NOT NULL REFERENCES members(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
       borrow_date DATE NOT NULL,
       due_date DATE NOT NULL,
       return_date DATE,
@@ -58,32 +100,189 @@ async function runMigrations() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS borrow_requests (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      book_id INTEGER NOT NULL REFERENCES books(id),
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      admin_note TEXT,
+      reviewed_by INTEGER REFERENCES users(id),
+      reviewed_at TIMESTAMP,
+      borrow_id INTEGER REFERENCES transactions(id),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS extension_requests (
+      id SERIAL PRIMARY KEY,
+      borrow_id INTEGER NOT NULL REFERENCES transactions(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      current_due_date DATE NOT NULL,
+      requested_due_date DATE NOT NULL,
+      reason TEXT,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      admin_note TEXT,
+      reviewed_by INTEGER REFERENCES users(id),
+      reviewed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await seedAdmin(pool);
+}
+
+// Upgrades old databases: renames user columns and imports rows from the legacy `members` table.
+// SQL below must keep legacy table/column names (`members`, `member_id`, etc.) to detect old schema.
+async function migrateLegacyUserSchema(pool) {
+  await pool.query(`
+    ALTER TABLE users RENAME COLUMN member_code TO user_code
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE users RENAME COLUMN membership_date TO joined_date
+  `).catch(() => {});
+
+  const { rows } = await pool.query(`
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables WHERE table_name = 'members'
+    ) AS exists
+  `);
+
+  if (!rows[0].exists) return;
+
+  const { rows: existingUsers } = await pool.query(
+    "SELECT COUNT(*)::int AS count FROM users WHERE role IN ('teacher', 'student')",
+  );
+  if (existingUsers[0].count > 0) {
+    await pool.query("DROP TABLE IF EXISTS members CASCADE");
+    return;
+  }
+
+  const { rows: legacyRows } = await pool.query(
+    "SELECT * FROM members ORDER BY id",
+  );
+  if (legacyRows.length === 0) {
+    return;
+  }
+
+  const tempHash = await bcrypt.hash(MIGRATION_TEMP_PASSWORD, 10);
+  const idMap = new Map();
+
+  for (let i = 0; i < legacyRows.length; i++) {
+    const legacyRow = legacyRows[i];
+    const code = `S${String(i + 1).padStart(4, "0")}`;
+    const { rows: inserted } = await pool.query(
+      `INSERT INTO users (
+        username, password_hash, role, user_code, name, email, phone,
+        address, joined_date, status, must_change_password
+      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, true)
+      ON CONFLICT (username) DO NOTHING
+      RETURNING id`,
+      [
+        code,
+        tempHash,
+        code,
+        legacyRow.name,
+        legacyRow.email,
+        legacyRow.phone,
+        legacyRow.address,
+        legacyRow.membership_date,
+        legacyRow.status,
+      ],
+    );
+
+    if (inserted[0]) {
+      idMap.set(legacyRow.id, inserted[0].id);
+    } else {
+      const { rows: existing } = await pool.query(
+        "SELECT id FROM users WHERE user_code = $1",
+        [code],
+      );
+      if (existing[0]) idMap.set(legacyRow.id, existing[0].id);
+    }
+  }
+
+  const { rows: txCols } = await pool.query(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'transactions' AND column_name = 'member_id'
+  `);
+
+  if (txCols.length > 0 && idMap.size > 0) {
+    await pool.query(`
+      ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_member_id_fkey
+    `);
+    for (const [oldId, newId] of idMap) {
+      await pool.query(
+        "UPDATE transactions SET member_id = $1 WHERE member_id = $2",
+        [newId, oldId],
+      );
+    }
+  }
+}
+
+async function ensureTransactionsUserId(pool) {
+  const { rows: cols } = await pool.query(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'transactions'
+      AND column_name IN ('member_id', 'user_id')
+  `);
+  const names = cols.map((c) => c.column_name);
+
+  if (names.includes("member_id") && !names.includes("user_id")) {
+    await pool.query(`
+      ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_member_id_fkey
+    `);
+    await pool.query(`
+      ALTER TABLE transactions RENAME COLUMN member_id TO user_id
+    `);
+  }
+
+  if (!names.includes("user_id") && !names.includes("member_id")) {
+    return;
+  }
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'transactions_user_id_fkey'
+      ) THEN
+        ALTER TABLE transactions
+          ADD CONSTRAINT transactions_user_id_fkey
+          FOREIGN KEY (user_id) REFERENCES users(id);
+      END IF;
+    EXCEPTION
+      WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+
+  await pool.query(`
     DO $$
     BEGIN
       IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'transactions' AND column_name = 'fine_per_day'
+        SELECT 1 FROM information_schema.tables WHERE table_name = 'members'
       ) THEN
-        UPDATE transactions
-        SET daily_fine_amount = GREATEST(
-          1,
-          LEAST(10, COALESCE(NULLIF(daily_fine_amount, 1), ROUND(fine_per_day)::INTEGER))
-        )
-        WHERE fine_per_day IS NOT NULL;
+        DROP TABLE members;
       END IF;
-
-      IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'transactions' AND column_name = 'fine_paid'
-      ) THEN
-        UPDATE transactions
-        SET payment_status = 'paid'
-        WHERE fine_paid = TRUE AND payment_status = 'none';
-      END IF;
+    EXCEPTION
+      WHEN dependent_objects_still_exist THEN NULL;
     END $$
   `);
+}
+
+async function seedAdmin(pool) {
+  const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  await pool.query(
+    `INSERT INTO users (
+      username, password_hash, role, name, status, must_change_password
+    ) VALUES ('admin', $1, 'admin', 'Library Admin', 'active', false)
+    ON CONFLICT (username) DO UPDATE SET
+      password_hash = EXCLUDED.password_hash,
+      role = 'admin',
+      status = 'active',
+      must_change_password = false`,
+    [hash],
+  );
 }
 
 module.exports = { runMigrations };

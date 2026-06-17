@@ -1,10 +1,10 @@
 const { getPool } = require("../config/connection");
 
 const TRANSACTION_WITH_DETAILS = `
-  SELECT t.*, b.title AS book_title, m.name AS member_name
+  SELECT t.*, b.title AS book_title, u.name AS user_name
   FROM transactions t
   JOIN books b ON t.book_id = b.id
-  JOIN members m ON t.member_id = m.id
+  JOIN users u ON t.user_id = u.id
 `;
 
 async function findAllWithDetails() {
@@ -14,10 +14,10 @@ async function findAllWithDetails() {
   return rows;
 }
 
-async function findByMemberId(memberId) {
+async function findByUserId(userId) {
   const { rows } = await getPool().query(
-    `${TRANSACTION_WITH_DETAILS} WHERE t.member_id = $1 ORDER BY t.borrow_date DESC`,
-    [memberId],
+    `${TRANSACTION_WITH_DETAILS} WHERE t.user_id = $1 ORDER BY t.borrow_date DESC`,
+    [userId],
   );
   return rows;
 }
@@ -52,11 +52,11 @@ async function create(data, client) {
   const db = client || getPool();
   const { rows } = await db.query(
     `INSERT INTO transactions (
-      book_id, member_id, borrow_date, due_date, status, daily_fine_amount
+      book_id, user_id, borrow_date, due_date, status, daily_fine_amount
     ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
     [
       data.book_id,
-      data.member_id,
+      data.user_id,
       data.borrow_date,
       data.due_date,
       data.status,
@@ -103,7 +103,7 @@ async function remove(id, client) {
 
 module.exports = {
   findAllWithDetails,
-  findByMemberId,
+  findByUserId,
   findByIdWithDetails,
   findById,
   findActiveById,

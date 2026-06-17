@@ -1,5 +1,5 @@
 const bookRepository = require("../repositories/bookRepository");
-const memberRepository = require("../repositories/memberRepository");
+const userRepository = require("../repositories/userRepository");
 const transactionRepository = require("../repositories/transactionRepository");
 const { withTransaction } = require("../config/connection");
 const { AppError } = require("../middleware");
@@ -19,7 +19,10 @@ function parseDailyFineAmount(value) {
 }
 
 function mapTransaction(transaction) {
-  return enrichTransaction(transaction);
+  return enrichTransaction({
+    ...transaction,
+    userId: transaction.user_id,
+  });
 }
 
 async function getAllTransactions() {
@@ -29,26 +32,29 @@ async function getAllTransactions() {
 
 async function borrowBook({
   book_id,
-  member_id,
+  user_id,
+  userId,
   borrow_date,
   due_date,
   daily_fine_amount,
 }) {
-  if (!book_id || !member_id || !borrow_date || !due_date) {
+  const borrowerId = user_id ?? userId;
+
+  if (!book_id || !borrowerId || !borrow_date || !due_date) {
     throw new AppError(
-      "book_id, member_id, borrow_date, and due_date are required",
+      "book_id, userId, borrow_date, and due_date are required",
       400,
     );
   }
 
   const fineAmount = parseDailyFineAmount(daily_fine_amount ?? 1);
   const book = await bookRepository.findById(book_id);
-  const member = await memberRepository.findById(member_id);
+  const user = await userRepository.findById(borrowerId);
 
   if (!book) throw new AppError("Book not found", 400);
-  if (!member) throw new AppError("Member not found", 400);
-  if (member.status !== "active")
-    throw new AppError("Member is not active", 400);
+  if (!user) throw new AppError("User not found", 400);
+  if (user.status !== "active")
+    throw new AppError("User is not active", 400);
   if (book.qty < 1) throw new AppError("No copies available", 400);
 
   if (new Date(due_date) < new Date(borrow_date)) {
@@ -59,7 +65,7 @@ async function borrowBook({
     const transactionId = await transactionRepository.create(
       {
         book_id,
-        member_id,
+        user_id: borrowerId,
         borrow_date,
         due_date,
         status: "borrowed",
@@ -126,7 +132,11 @@ async function returnBook(transactionId) {
     const today = getTodayDateOnly();
     const overdue = isOverdue(transaction.due_date, today);
 
-    if (overdue && transaction.payment_status !== "paid" && transaction.fine_paid !== true) {
+    if (
+      overdue &&
+      transaction.payment_status !== "paid" &&
+      transaction.fine_paid !== true
+    ) {
       throw new AppError(
         "Payment must be recorded before returning an overdue book",
         400,
@@ -134,7 +144,7 @@ async function returnBook(transactionId) {
     }
 
     const fineAmount = overdue
-      ? transaction.paid_amount ?? calculateAccruedFine(transaction, today)
+      ? (transaction.paid_amount ?? calculateAccruedFine(transaction, today))
       : 0;
 
     await transactionRepository.markReturned(

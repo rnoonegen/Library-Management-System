@@ -1,12 +1,24 @@
 const API_BASE = process.env.REACT_APP_API_URL || "/api";
 
+let authToken = null;
+
+export function setAuthToken(token) {
+  authToken = token;
+}
+
 async function request(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
     ...options,
+    headers,
   });
 
   const data = await response.json().catch(() => ({}));
@@ -19,8 +31,31 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  login: (username, password) =>
+    request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  getMe: () => request("/auth/me"),
+  changePassword: (payload) =>
+    request("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   getHealth: () => request("/health"),
   getStats: () => request("/dashboard/stats"),
+
+  getNextUserCode: (role) => request(`/admin/users/next/${role}`),
+  getUsers: (role) => {
+    const query = role ? `?role=${role}` : "";
+    return request(`/admin/users${query}`);
+  },
+  updateUser: (id, user) =>
+    request(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(user) }),
+  deleteUser: (id) => request(`/admin/users/${id}`, { method: "DELETE" }),
+  createUser: (user) =>
+    request("/admin/users", { method: "POST", body: JSON.stringify(user) }),
 
   getBooks: (params) => {
     const query = params ? `?${new URLSearchParams(params)}` : "";
@@ -31,13 +66,6 @@ export const api = {
   updateBook: (id, book) =>
     request(`/books/${id}`, { method: "PUT", body: JSON.stringify(book) }),
   deleteBook: (id) => request(`/books/${id}`, { method: "DELETE" }),
-
-  getMembers: () => request("/members"),
-  createMember: (member) =>
-    request("/members", { method: "POST", body: JSON.stringify(member) }),
-  updateMember: (id, member) =>
-    request(`/members/${id}`, { method: "PUT", body: JSON.stringify(member) }),
-  deleteMember: (id) => request(`/members/${id}`, { method: "DELETE" }),
 
   getTransactions: () => request("/transactions"),
   borrowBook: (data) =>
@@ -54,4 +82,41 @@ export const api = {
     }),
   deleteTransaction: (id) =>
     request(`/transactions/${id}`, { method: "DELETE" }),
+
+  submitBorrowRequest: (bookId) =>
+    request("/borrow-requests", {
+      method: "POST",
+      body: JSON.stringify({ book_id: bookId }),
+    }),
+  getMyBorrowRequests: () => request("/borrow-requests/mine"),
+  getBorrowRequests: (status) => {
+    const query = status ? `?status=${status}` : "";
+    return request(`/admin/borrow-requests${query}`);
+  },
+  reviewBorrowRequest: (id, payload) =>
+    request(`/admin/borrow-requests/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  submitExtensionRequest: (payload) =>
+    request("/extension-requests", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  getMyExtensionRequests: () => request("/extension-requests/mine"),
+  getExtensionRequests: (status) => {
+    const query = status ? `?status=${status}` : "";
+    return request(`/admin/extension-requests${query}`);
+  },
+  reviewExtensionRequest: (id, payload) =>
+    request(`/admin/extension-requests/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  getMyBorrows: () => request("/borrows/mine"),
+  updateProfile: (payload) =>
+    request("/profile", { method: "PUT", body: JSON.stringify(payload) }),
 };
+

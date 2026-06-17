@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { api } from 'services/api';
 
 export function useDbMode() {
   const [dbMode, setDbMode] = useState('online');
@@ -10,3 +10,4 @@ export function useDbMode() {
 
   return dbMode;
 }
+

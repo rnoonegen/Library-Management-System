@@ -666,6 +666,60 @@ video {
   color: var(--text-muted);
   margin-bottom: 0.35rem;
 }
+.password-field {
+  position: relative;
+  display: block;
+}
+.password-field input {
+  display: block;
+  box-sizing: border-box;
+  min-height: 2.5rem;
+  padding-right: 2.75rem;
+}
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0.45rem;
+  bottom: 0;
+  width: 2rem;
+  height: 2rem;
+  margin: auto 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.password-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.password-toggle-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.password-toggle:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.password-toggle:active:not(:disabled) {
+  transform: none;
+}
+.password-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

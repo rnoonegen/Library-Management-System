@@ -1,5 +1,5 @@
-import Button from 'components/common/Button';
-import FormField from 'components/common/FormField';
+import Button from "components/common/Button";
+import FormField from "components/common/FormField";
 
 export default function UserProfileForm({
   user,
@@ -23,15 +23,10 @@ export default function UserProfileForm({
           <FormField
             id="username"
             label="User ID"
-            value={user?.username || ''}
+            value={user?.username || ""}
             readOnly
           />
-          <FormField
-            id="role"
-            label="Role"
-            value={user?.role || ''}
-            readOnly
-          />
+          <FormField id="role" label="Role" value={user?.role || ""} readOnly />
         </div>
 
         <FormField
@@ -92,11 +87,10 @@ export default function UserProfileForm({
 
         <div className="form-actions">
           <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save profile'}
+            {saving ? "Saving..." : "Save profile"}
           </Button>
         </div>
       </form>
     </div>
   );
 }
-

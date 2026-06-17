@@ -1,32 +1,32 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from 'context/AuthContext';
-import { api } from 'services/api';
-import UserProfileForm from 'components/users/UserProfileForm';
+import { useEffect, useState } from "react";
+import { useAuth } from "context/AuthContext";
+import { api } from "services/api";
+import UserProfileForm from "components/users/UserProfileForm";
 
 export default function UserProfile() {
   const { user, refreshUser } = useAuth();
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    grade_level: '',
-    department: '',
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    grade_level: "",
+    department: "",
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     refreshUser()
       .then((profile) => {
         setForm({
-          name: profile.name || '',
-          email: profile.email || '',
-          phone: profile.phone || '',
-          address: profile.address || '',
-          grade_level: profile.gradeLevel || '',
-          department: profile.department || '',
+          name: profile.name || "",
+          email: profile.email || "",
+          phone: profile.phone || "",
+          address: profile.address || "",
+          grade_level: profile.gradeLevel || "",
+          department: profile.department || "",
         });
       })
       .catch((err) => setError(err.message));
@@ -34,13 +34,13 @@ export default function UserProfile() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     setSaving(true);
     try {
       await api.updateProfile(form);
       await refreshUser();
-      setSuccess('Profile saved successfully');
+      setSuccess("Profile saved successfully");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,8 +48,8 @@ export default function UserProfile() {
     }
   }
 
-  const isStudent = user?.role === 'student';
-  const isTeacher = user?.role === 'teacher';
+  const isStudent = user?.role === "student";
+  const isTeacher = user?.role === "teacher";
 
   return (
     <div className="page">
@@ -67,5 +67,3 @@ export default function UserProfile() {
     </div>
   );
 }
-
-

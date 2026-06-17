@@ -151,14 +151,9 @@ export default function Users() {
         onRoleChange={handleRoleChangeInForm}
       />
 
-      <div className="fab-group">
-        <button type="button" className="users-fab" onClick={() => openCreate('student')}>
-          + Student
-        </button>
-        <button type="button" className="users-fab users-fab-alt" onClick={() => openCreate('teacher')}>
-          + Teacher
-        </button>
-      </div>
+      <button type="button" className="users-fab" onClick={() => openCreate('student')}>
+        + User
+      </button>
     </div>
   );
 }

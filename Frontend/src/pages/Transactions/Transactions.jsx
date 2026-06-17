@@ -3,7 +3,7 @@ import { api } from "../../services/api";
 import Modal, { useModal } from "../../components/ui/Modal";
 import SearchBar from "../../components/ui/SearchBar";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 const STATUS_TABS = [
   { id: "all", label: "All" },

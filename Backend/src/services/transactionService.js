@@ -1,5 +1,5 @@
 const bookRepository = require("../repositories/bookRepository");
-const memberRepository = require("../repositories/memberRepository");
+const userRepository = require("../repositories/userRepository");
 const transactionRepository = require("../repositories/transactionRepository");
 const { withTransaction } = require("../config/connection");
 const { AppError } = require("../middleware");
@@ -9,6 +9,8 @@ const {
   isOverdue,
   getTodayDateOnly,
 } = require("../utils/fineUtils");
+const holdQueueService = require("./holdQueueService");
+const { MAX_ACTIVE_BORROWS } = require("../constants/libraryRules");
 
 function parseDailyFineAmount(value) {
   const amount = parseInt(value, 10);
@@ -19,37 +21,69 @@ function parseDailyFineAmount(value) {
 }
 
 function mapTransaction(transaction) {
-  return enrichTransaction(transaction);
+  return enrichTransaction({
+    ...transaction,
+    userId: transaction.user_id,
+  });
 }
 
-async function getAllTransactions() {
-  const transactions = await transactionRepository.findAllWithDetails();
-  return transactions.map(mapTransaction);
+async function getAllTransactions(query = {}) {
+  const pageNum = Math.max(1, parseInt(query.page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
+  const { transactions, total } = await transactionRepository.findPaginated(
+    pageNum,
+    limitNum,
+    {
+      search: query.search || "",
+      status: query.status || "all",
+    },
+  );
+  const statusCounts = await transactionRepository.getStatusCounts();
+
+  return {
+    transactions: transactions.map(mapTransaction),
+    total,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.max(1, Math.ceil(total / limitNum)),
+    statusCounts,
+  };
 }
 
 async function borrowBook({
   book_id,
-  member_id,
+  user_id,
+  userId,
   borrow_date,
   due_date,
   daily_fine_amount,
 }) {
-  if (!book_id || !member_id || !borrow_date || !due_date) {
+  const borrowerId = user_id ?? userId;
+
+  if (!book_id || !borrowerId || !borrow_date || !due_date) {
     throw new AppError(
-      "book_id, member_id, borrow_date, and due_date are required",
+      "book_id, userId, borrow_date, and due_date are required",
       400,
     );
   }
 
   const fineAmount = parseDailyFineAmount(daily_fine_amount ?? 1);
   const book = await bookRepository.findById(book_id);
-  const member = await memberRepository.findById(member_id);
+  const user = await userRepository.findById(borrowerId);
 
   if (!book) throw new AppError("Book not found", 400);
-  if (!member) throw new AppError("Member not found", 400);
-  if (member.status !== "active")
-    throw new AppError("Member is not active", 400);
+  if (!user) throw new AppError("User not found", 400);
+  if (user.status !== "active")
+    throw new AppError("User is not active", 400);
   if (book.qty < 1) throw new AppError("No copies available", 400);
+
+  const activeCount = await transactionRepository.countActiveByUserId(borrowerId);
+  if (activeCount >= MAX_ACTIVE_BORROWS) {
+    throw new AppError(
+      `User already has ${MAX_ACTIVE_BORROWS} active books`,
+      400,
+    );
+  }
 
   if (new Date(due_date) < new Date(borrow_date)) {
     throw new AppError("Due date cannot be before borrow date", 400);
@@ -59,7 +93,7 @@ async function borrowBook({
     const transactionId = await transactionRepository.create(
       {
         book_id,
-        member_id,
+        user_id: borrowerId,
         borrow_date,
         due_date,
         status: "borrowed",
@@ -126,7 +160,11 @@ async function returnBook(transactionId) {
     const today = getTodayDateOnly();
     const overdue = isOverdue(transaction.due_date, today);
 
-    if (overdue && transaction.payment_status !== "paid" && transaction.fine_paid !== true) {
+    if (
+      overdue &&
+      transaction.payment_status !== "paid" &&
+      transaction.fine_paid !== true
+    ) {
       throw new AppError(
         "Payment must be recorded before returning an overdue book",
         400,
@@ -134,7 +172,7 @@ async function returnBook(transactionId) {
     }
 
     const fineAmount = overdue
-      ? transaction.paid_amount ?? calculateAccruedFine(transaction, today)
+      ? (transaction.paid_amount ?? calculateAccruedFine(transaction, today))
       : 0;
 
     await transactionRepository.markReturned(
@@ -144,6 +182,8 @@ async function returnBook(transactionId) {
       client,
     );
     await bookRepository.incrementQty(transaction.book_id, client);
+
+    await holdQueueService.syncHoldQueues(client);
 
     const updated = await transactionRepository.findByIdWithDetails(
       transactionId,
@@ -195,6 +235,7 @@ async function deleteTransaction(id) {
     }
 
     await transactionRepository.remove(id, client);
+    await holdQueueService.syncHoldQueues(client);
     return { success: true };
   });
 }

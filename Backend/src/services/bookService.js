@@ -22,19 +22,14 @@ function normalizeBookInput(data) {
 }
 
 async function listBooks(query = {}) {
-  const { page, limit, search } = query;
-  const hasSearch = search && String(search).trim().length > 0;
-
-  if (page || limit || hasSearch) {
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 10;
-    return getBooksPaginated(pageNum, limitNum, search || '');
-  }
-  return getAllBooks();
+  const pageNum = Math.max(1, parseInt(query.page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
+  const search = query.search || "";
+  return getBooksPaginated(pageNum, limitNum, search);
 }
 
-async function getAllBooks() {
-  return bookRepository.findAll();
+async function listAvailableBooks() {
+  return bookRepository.findAvailable();
 }
 
 async function getBooksPaginated(page = 1, limit = 10, search = '') {
@@ -49,10 +44,6 @@ async function getBooksPaginated(page = 1, limit = 10, search = '') {
     limit: safeLimit,
     totalPages: Math.max(1, Math.ceil(total / safeLimit)),
   };
-}
-
-async function getBookById(id) {
-  return bookRepository.findById(id);
 }
 
 async function createBook(data) {
@@ -96,9 +87,7 @@ async function deleteBook(id) {
 
 module.exports = {
   listBooks,
-  getAllBooks,
-  getBooksPaginated,
-  getBookById,
+  listAvailableBooks,
   createBook,
   updateBook,
   deleteBook,

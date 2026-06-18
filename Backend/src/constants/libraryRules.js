@@ -1,0 +1,6 @@
+module.exports = {
+  MAX_ACTIVE_BORROWS: 3,
+  PICKUP_DAYS: 3,
+  LOAN_DAYS: 14,
+  MAX_EXTENSIONS_PER_MONTH: 1,
+};

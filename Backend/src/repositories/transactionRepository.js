@@ -1,10 +1,10 @@
 const { getPool } = require("../config/connection");
 
 const TRANSACTION_WITH_DETAILS = `
-  SELECT t.*, b.title AS book_title, m.name AS member_name
+  SELECT t.*, b.title AS book_title, u.name AS user_name
   FROM transactions t
   JOIN books b ON t.book_id = b.id
-  JOIN members m ON t.member_id = m.id
+  JOIN users u ON t.user_id = u.id
 `;
 
 async function findAllWithDetails() {
@@ -14,10 +14,58 @@ async function findAllWithDetails() {
   return rows;
 }
 
-async function findByMemberId(memberId) {
+async function findPaginated(page, limit, { search, status } = {}) {
+  const offset = (page - 1) * limit;
+  const conditions = [];
+  const params = [];
+  let paramIndex = 1;
+
+  if (status && status !== "all") {
+    if (status === "overdue") {
+      conditions.push(`t.status != 'returned' AND t.due_date < CURRENT_DATE`);
+    } else if (status === "borrowed") {
+      conditions.push(`t.status != 'returned' AND t.due_date >= CURRENT_DATE`);
+    } else {
+      conditions.push(`t.status = $${paramIndex}`);
+      params.push(status);
+      paramIndex += 1;
+    }
+  }
+
+  const term = (search || "").trim();
+  if (term) {
+    conditions.push(`b.title ILIKE $${paramIndex}`);
+    params.push(`%${term}%`);
+    paramIndex += 1;
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const { rows: countRows } = await getPool().query(
+    `SELECT COUNT(*)::int AS total
+     FROM transactions t
+     JOIN books b ON t.book_id = b.id
+     JOIN users u ON t.user_id = u.id
+     ${where}`,
+    params,
+  );
+  const total = countRows[0].total;
+
   const { rows } = await getPool().query(
-    `${TRANSACTION_WITH_DETAILS} WHERE t.member_id = $1 ORDER BY t.borrow_date DESC`,
-    [memberId],
+    `${TRANSACTION_WITH_DETAILS}
+     ${where}
+     ORDER BY t.borrow_date DESC
+     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    [...params, limit, offset],
+  );
+
+  return { transactions: rows, total };
+}
+
+async function findByUserId(userId) {
+  const { rows } = await getPool().query(
+    `${TRANSACTION_WITH_DETAILS} WHERE t.user_id = $1 ORDER BY t.borrow_date DESC`,
+    [userId],
   );
   return rows;
 }
@@ -48,15 +96,65 @@ async function findActiveById(id, client) {
   return rows[0] || null;
 }
 
+async function countActiveByUserId(userId, client) {
+  const db = client || getPool();
+  const { rows } = await db.query(
+    `SELECT COUNT(*)::int AS count FROM transactions
+     WHERE user_id = $1 AND status != 'returned'`,
+    [userId],
+  );
+  return rows[0].count;
+}
+
+async function findByUserIds(userIds) {
+  if (!userIds.length) return [];
+  const { rows } = await getPool().query(
+    "SELECT * FROM transactions WHERE user_id = ANY($1::int[])",
+    [userIds],
+  );
+  return rows;
+}
+
+async function findActiveBorrowByUserAndBook(userId, bookId, client) {
+  const db = client || getPool();
+  const { rows } = await db.query(
+    `SELECT id FROM transactions
+     WHERE user_id = $1 AND book_id = $2 AND status != 'returned'
+     LIMIT 1`,
+    [userId, bookId],
+  );
+  return rows[0] || null;
+}
+
+async function findActiveBookIdsByUserId(userId) {
+  const { rows } = await getPool().query(
+    `SELECT book_id FROM transactions
+     WHERE user_id = $1 AND status != 'returned'`,
+    [userId],
+  );
+  return rows.map((r) => r.book_id);
+}
+
+async function findActiveByBookId(bookId, client) {
+  const db = client || getPool();
+  const { rows } = await db.query(
+    `${TRANSACTION_WITH_DETAILS}
+     WHERE t.book_id = $1 AND t.status != 'returned'
+     ORDER BY t.borrow_date DESC LIMIT 1`,
+    [bookId],
+  );
+  return rows[0] || null;
+}
+
 async function create(data, client) {
   const db = client || getPool();
   const { rows } = await db.query(
     `INSERT INTO transactions (
-      book_id, member_id, borrow_date, due_date, status, daily_fine_amount
+      book_id, user_id, borrow_date, due_date, status, daily_fine_amount
     ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
     [
       data.book_id,
-      data.member_id,
+      data.user_id,
       data.borrow_date,
       data.due_date,
       data.status,
@@ -101,15 +199,52 @@ async function remove(id, client) {
   await db.query("DELETE FROM transactions WHERE id = $1", [id]);
 }
 
+async function getLoanStats(today) {
+  const { rows } = await getPool().query(
+    `SELECT
+      COUNT(*) FILTER (WHERE status != 'returned')::int AS active_borrows,
+      COUNT(*) FILTER (
+        WHERE status != 'returned' AND due_date < $1::date
+      )::int AS overdue_loans
+    FROM transactions`,
+    [today],
+  );
+  return rows[0];
+}
+
+async function getStatusCounts() {
+  const { rows } = await getPool().query(`
+    SELECT
+      COUNT(*)::int AS all,
+      COUNT(*) FILTER (
+        WHERE status != 'returned' AND due_date >= CURRENT_DATE
+      )::int AS borrowed,
+      COUNT(*) FILTER (
+        WHERE status != 'returned' AND due_date < CURRENT_DATE
+      )::int AS overdue,
+      COUNT(*) FILTER (WHERE status = 'returned')::int AS returned
+    FROM transactions
+  `);
+  return rows[0];
+}
+
 module.exports = {
   findAllWithDetails,
-  findByMemberId,
+  findPaginated,
+  findByUserId,
+  findByUserIds,
   findByIdWithDetails,
   findById,
   findActiveById,
+  countActiveByUserId,
+  findActiveBorrowByUserAndBook,
+  findActiveBookIdsByUserId,
+  findActiveByBookId,
   create,
   markReturned,
   markPaid,
   update,
   remove,
+  getLoanStats,
+  getStatusCounts,
 };

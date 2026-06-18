@@ -35,8 +35,9 @@ async function findPaginated(page, limit, search = '') {
   return { books: rows, total };
 }
 
-async function findById(id) {
-  const { rows } = await getPool().query('SELECT * FROM books WHERE id = $1', [id]);
+async function findById(id, client) {
+  const db = client || getPool();
+  const { rows } = await db.query('SELECT * FROM books WHERE id = $1', [id]);
   return rows[0] || null;
 }
 
@@ -86,7 +87,14 @@ async function remove(id) {
 
 async function decrementQty(id, client) {
   const db = client || getPool();
-  await db.query('UPDATE books SET qty = qty - 1 WHERE id = $1', [id]);
+  const { rowCount } = await db.query(
+    'UPDATE books SET qty = qty - 1 WHERE id = $1 AND qty > 0',
+    [id],
+  );
+  if (rowCount === 0) {
+    const { AppError } = require('../middleware');
+    throw new AppError('No copies available', 400);
+  }
 }
 
 async function incrementQty(id, client) {
@@ -94,13 +102,34 @@ async function incrementQty(id, client) {
   await db.query('UPDATE books SET qty = qty + 1 WHERE id = $1', [id]);
 }
 
+async function findAvailable() {
+  const { rows } = await getPool().query(
+    `SELECT id, isbn, title, author, qty
+     FROM books WHERE qty > 0
+     ORDER BY title`,
+  );
+  return rows;
+}
+
+async function getInventoryStats() {
+  const { rows } = await getPool().query(`
+    SELECT
+      COUNT(*)::int AS total_books,
+      COALESCE(SUM(qty), 0)::int AS available_copies
+    FROM books
+  `);
+  return rows[0];
+}
+
 module.exports = {
   findAll,
   findPaginated,
+  findAvailable,
   findById,
   create,
   update,
   remove,
   decrementQty,
   incrementQty,
+  getInventoryStats,
 };

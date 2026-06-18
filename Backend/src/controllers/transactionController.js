@@ -1,8 +1,8 @@
 const transactionService = require("../services/transactionService");
 
 async function listTransactions(req, res) {
-  const transactions = await transactionService.getAllTransactions();
-  res.json(transactions);
+  const result = await transactionService.getAllTransactions(req.query);
+  res.json(result);
 }
 
 async function borrowBook(req, res) {

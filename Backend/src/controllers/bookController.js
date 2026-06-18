@@ -6,12 +6,6 @@ async function listBooks(req, res) {
   res.json(result);
 }
 
-async function getBook(req, res) {
-  const book = await bookService.getBookById(req.params.id);
-  if (!book) throw new AppError('Book not found', 404);
-  res.json(book);
-}
-
 async function createBook(req, res) {
   const book = await bookService.createBook(req.body);
   res.status(201).json(book);
@@ -29,9 +23,14 @@ async function deleteBook(req, res) {
   res.json({ message: 'Book deleted successfully' });
 }
 
+async function listAvailableBooks(req, res) {
+  const books = await bookService.listAvailableBooks();
+  res.json(books);
+}
+
 module.exports = {
   listBooks,
-  getBook,
+  listAvailableBooks,
   createBook,
   updateBook,
   deleteBook,

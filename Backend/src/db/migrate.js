@@ -129,6 +129,31 @@ async function runMigrations() {
     )
   `);
 
+  await pool.query(`
+    ALTER TABLE borrow_requests
+      ADD COLUMN IF NOT EXISTS ready_at TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS collect_by DATE
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      type VARCHAR(50) NOT NULL,
+      title VARCHAR(200) NOT NULL,
+      message TEXT NOT NULL,
+      related_id INTEGER,
+      is_read BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS borrow_requests_one_active_per_user_book
+    ON borrow_requests (user_id, book_id)
+    WHERE status IN ('pending', 'ready')
+  `);
+
   await seedAdmin(pool);
 }
 

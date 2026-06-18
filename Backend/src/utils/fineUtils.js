@@ -16,6 +16,15 @@ function getTodayDateOnly() {
   return new Date().toISOString().split("T")[0];
 }
 
+/** Normalize DB date (Date object or string) to YYYY-MM-DD. */
+function formatDateOnly(value) {
+  if (value == null || value === "") return "";
+  if (value instanceof Date) {
+    return value.toISOString().split("T")[0];
+  }
+  return String(value).split("T")[0];
+}
+
 function daysBetween(startMs, endMs) {
   const msPerDay = 24 * 60 * 60 * 1000;
   return Math.max(0, Math.floor((endMs - startMs) / msPerDay));
@@ -117,6 +126,7 @@ function sumOutstandingFine(transactions) {
 
 module.exports = {
   getTodayDateOnly,
+  formatDateOnly,
   isOverdue,
   getOverdueDays,
   calculateAccruedFine,

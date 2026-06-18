@@ -4,6 +4,7 @@ const { authenticate, authorize } = require("../middleware/auth");
 const authController = require("../controllers/authController");
 const userController = require("../controllers/userController");
 const requestController = require("../controllers/requestController");
+const notificationController = require("../controllers/notificationController");
 const healthController = require("../controllers/healthController");
 const bookController = require("../controllers/bookController");
 const transactionController = require("../controllers/transactionController");
@@ -27,6 +28,7 @@ const anyUser = [authenticate, authorize("admin", "teacher", "student")];
 
 router.get("/admin/users/next/:role", ...admin, asyncHandler(userController.nextCode));
 router.get("/admin/users", ...admin, asyncHandler(userController.listUsers));
+router.get("/admin/users/:id/borrows", ...admin, asyncHandler(userController.getUserBorrows));
 router.post("/admin/users", ...admin, asyncHandler(userController.createUser));
 router.put("/admin/users/:id", ...admin, asyncHandler(userController.updateUser));
 router.delete("/admin/users/:id", ...admin, asyncHandler(userController.deleteUser));
@@ -35,12 +37,19 @@ router.put("/profile", ...standardUser, asyncHandler(userController.updateProfil
 
 router.post("/borrow-requests", ...standardUser, asyncHandler(requestController.submitBorrowRequest));
 router.get("/borrow-requests/mine", ...standardUser, asyncHandler(requestController.myBorrowRequests));
+router.delete("/borrow-requests/:id", ...standardUser, asyncHandler(requestController.cancelBorrowRequest));
+router.get("/admin/borrow-requests/summary", ...admin, asyncHandler(requestController.holdQueueSummary));
 router.get("/admin/borrow-requests", ...admin, asyncHandler(requestController.listBorrowRequests));
 router.patch(
   "/admin/borrow-requests/:id",
   ...admin,
   asyncHandler(requestController.reviewBorrowRequest),
 );
+
+router.get("/notifications", ...anyUser, asyncHandler(notificationController.listMine));
+router.get("/notifications/unread-count", ...anyUser, asyncHandler(notificationController.unreadCount));
+router.patch("/notifications/:id/read", ...anyUser, asyncHandler(notificationController.markRead));
+router.patch("/notifications/read-all", ...anyUser, asyncHandler(notificationController.markAllRead));
 
 router.post("/extension-requests", ...standardUser, asyncHandler(requestController.submitExtensionRequest));
 router.get("/extension-requests/mine", ...standardUser, asyncHandler(requestController.myExtensionRequests));

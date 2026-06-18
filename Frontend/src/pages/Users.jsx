@@ -3,6 +3,7 @@ import { api } from 'services/api';
 import { useModal } from 'components/common/Modal';
 import UsersContent from 'components/users/UsersContent';
 import UserFormModal from 'components/users/UserFormModal';
+import UserBorrowHistoryModal from 'components/users/UserBorrowHistoryModal';
 
 const PAGE_SIZE = 12;
 
@@ -28,6 +29,10 @@ export default function Users() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const modal = useModal();
+  const viewModal = useModal();
+  const [viewUser, setViewUser] = useState(null);
+  const [userBorrows, setUserBorrows] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const loadUsers = () => {
     setLoading(true);
@@ -67,6 +72,23 @@ export default function Users() {
     });
     setEditingId(user.id);
     modal.open();
+  };
+
+  const openView = async (user) => {
+    setViewUser(user);
+    setUserBorrows([]);
+    setHistoryLoading(true);
+    viewModal.open();
+    try {
+      const data = await api.getUserBorrows(user.id);
+      setViewUser(data.user || user);
+      setUserBorrows(data.borrows ?? []);
+    } catch (err) {
+      setError(err.message);
+      viewModal.close();
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -139,6 +161,15 @@ export default function Users() {
         onRoleChange={(role) => { setRoleFilter(role); setPage(1); }}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onView={openView}
+      />
+
+      <UserBorrowHistoryModal
+        isOpen={viewModal.isOpen}
+        user={viewUser}
+        borrows={userBorrows}
+        loading={historyLoading}
+        onClose={viewModal.close}
       />
 
       <UserFormModal

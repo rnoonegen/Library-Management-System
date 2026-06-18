@@ -48,6 +48,47 @@ async function findActiveById(id, client) {
   return rows[0] || null;
 }
 
+async function countActiveByUserId(userId, client) {
+  const db = client || getPool();
+  const { rows } = await db.query(
+    `SELECT COUNT(*)::int AS count FROM transactions
+     WHERE user_id = $1 AND status != 'returned'`,
+    [userId],
+  );
+  return rows[0].count;
+}
+
+async function findActiveBorrowByUserAndBook(userId, bookId, client) {
+  const db = client || getPool();
+  const { rows } = await db.query(
+    `SELECT id FROM transactions
+     WHERE user_id = $1 AND book_id = $2 AND status != 'returned'
+     LIMIT 1`,
+    [userId, bookId],
+  );
+  return rows[0] || null;
+}
+
+async function findActiveBookIdsByUserId(userId) {
+  const { rows } = await getPool().query(
+    `SELECT book_id FROM transactions
+     WHERE user_id = $1 AND status != 'returned'`,
+    [userId],
+  );
+  return rows.map((r) => r.book_id);
+}
+
+async function findActiveByBookId(bookId, client) {
+  const db = client || getPool();
+  const { rows } = await db.query(
+    `${TRANSACTION_WITH_DETAILS}
+     WHERE t.book_id = $1 AND t.status != 'returned'
+     ORDER BY t.borrow_date DESC LIMIT 1`,
+    [bookId],
+  );
+  return rows[0] || null;
+}
+
 async function create(data, client) {
   const db = client || getPool();
   const { rows } = await db.query(
@@ -107,6 +148,10 @@ module.exports = {
   findByIdWithDetails,
   findById,
   findActiveById,
+  countActiveByUserId,
+  findActiveBorrowByUserAndBook,
+  findActiveBookIdsByUserId,
+  findActiveByBookId,
   create,
   markReturned,
   markPaid,

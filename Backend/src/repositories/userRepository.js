@@ -35,6 +35,13 @@ async function findByUsername(username) {
   return rows[0] || null;
 }
 
+async function findAdminIds() {
+  const { rows } = await getPool().query(
+    "SELECT id FROM users WHERE role = 'admin'",
+  );
+  return rows.map((row) => row.id);
+}
+
 async function findAuthById(id) {
   const { rows } = await getPool().query(
     "SELECT * FROM users WHERE id = $1",
@@ -123,6 +130,7 @@ module.exports = {
   findById,
   findByUsername,
   findAuthById,
+  findAdminIds,
   getNextUserCode,
   create,
   update,

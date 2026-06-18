@@ -12,6 +12,8 @@ import UserBooks from 'pages/UserBooks';
 import UserRequests from 'pages/UserRequests';
 import UserBorrows from 'pages/UserBorrows';
 import UserProfile from 'pages/UserProfile';
+import UserNotifications from 'pages/UserNotifications';
+import UserRules from 'pages/UserRules';
 import { useDbMode } from 'hooks/useDbMode';
 
 export default function AppRoutes() {
@@ -41,6 +43,8 @@ export default function AppRoutes() {
         <Route path="books" element={<UserBooks />} />
         <Route path="requests" element={<UserRequests />} />
         <Route path="borrows" element={<UserBorrows />} />
+        <Route path="notifications" element={<UserNotifications />} />
+        <Route path="rules" element={<UserRules />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
 
@@ -57,6 +61,7 @@ export default function AppRoutes() {
         <Route path="users" element={<Users />} />
         <Route path="transactions" element={<Transactions />} />
         <Route path="requests" element={<Requests />} />
+        <Route path="notifications" element={<UserNotifications />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

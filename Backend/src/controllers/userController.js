@@ -25,6 +25,11 @@ async function deleteUser(req, res) {
   res.json({ message: "User deleted successfully" });
 }
 
+async function getUserBorrows(req, res) {
+  const result = await userService.getUserBorrowHistory(req.params.id);
+  res.json(result);
+}
+
 async function updateProfile(req, res) {
   const user = await userService.updateProfile(req.user.userId, req.body);
   res.json(user);
@@ -36,5 +41,6 @@ module.exports = {
   nextCode,
   updateUser,
   deleteUser,
+  getUserBorrows,
   updateProfile,
 };

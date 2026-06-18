@@ -53,11 +53,21 @@ export default function TransactionFormModal({
               >
                 <option value="">Select a user</option>
                 {activeUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
+                  <option
+                    key={user.id}
+                    value={user.id}
+                    disabled={user.at_borrow_limit}
+                  >
                     {user.name}
+                    {user.at_borrow_limit ? ' — borrow limit reached (3)' : ''}
                   </option>
                 ))}
               </select>
+              {activeUsers.every((u) => u.at_borrow_limit) && (
+                <p className="book-status-limit" style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                  All active users have reached the 3-book limit.
+                </p>
+              )}
             </div>
           </>
         )}

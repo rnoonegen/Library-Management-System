@@ -3,21 +3,34 @@ import { api } from 'services/api';
 import { useModal } from 'components/common/Modal';
 import UserBorrowsContent from 'components/users/UserBorrowsContent';
 import UserExtensionModal from 'components/users/UserExtensionModal';
+import { filterByBookTitle, paginateItems } from 'utils/pagination';
+
+function parseBorrowsResponse(data) {
+  if (Array.isArray(data)) {
+    return { borrows: data };
+  }
+  return { borrows: data.borrows ?? [] };
+}
 
 export default function UserBorrows() {
-  const [borrows, setBorrows] = useState([]);
+  const [allBorrows, setAllBorrows] = useState([]);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [dueDate, setDueDate] = useState('');
   const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const modal = useModal();
 
   const load = () => {
     setLoading(true);
     api
       .getMyBorrows()
-      .then(setBorrows)
+      .then((data) => {
+        const parsed = parseBorrowsResponse(data);
+        setAllBorrows(parsed.borrows);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   };
@@ -26,25 +39,42 @@ export default function UserBorrows() {
     load();
   }, []);
 
+  const filteredBorrows = filterByBookTitle(allBorrows, search);
+  const pagination = paginateItems(filteredBorrows, page);
+
+  useEffect(() => {
+    if (page !== pagination.page) setPage(pagination.page);
+  }, [page, pagination.page]);
+
+  const handleSearchChange = (value) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   function openExtension(borrow) {
+    if (!borrow.can_extend) return;
     setSelected(borrow);
-    setDueDate('');
     setReason('');
+    setError('');
     modal.open();
   }
 
   async function submitExtension(e) {
     e.preventDefault();
+    if (!selected?.can_extend) return;
+    setSubmitting(true);
+    setError('');
     try {
       await api.submitExtensionRequest({
         borrow_id: selected.id,
-        requested_due_date: dueDate,
         reason,
       });
       modal.close();
       load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -54,20 +84,32 @@ export default function UserBorrows() {
     <div className="page">
       {error && <div className="error-banner">{error}</div>}
 
-      <UserBorrowsContent borrows={borrows} onOpenExtension={openExtension} />
+      <UserBorrowsContent
+        borrows={pagination.items}
+        search={search}
+        total={pagination.total}
+        totalAll={allBorrows.length}
+        start={pagination.start}
+        end={pagination.end}
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        startPage={pagination.startPage}
+        endPage={pagination.endPage}
+        pageNumbers={pagination.pageNumbers}
+        onSearchChange={handleSearchChange}
+        onPageChange={setPage}
+        onOpenExtension={openExtension}
+      />
 
       <UserExtensionModal
         isOpen={modal.isOpen}
         selected={selected}
-        dueDate={dueDate}
         reason={reason}
+        submitting={submitting}
         onClose={modal.close}
         onSubmit={submitExtension}
-        onDueDateChange={setDueDate}
         onReasonChange={setReason}
       />
     </div>
   );
 }
-
-

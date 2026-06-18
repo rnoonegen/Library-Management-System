@@ -9,6 +9,8 @@ const {
   isOverdue,
   getTodayDateOnly,
 } = require("../utils/fineUtils");
+const holdQueueService = require("./holdQueueService");
+const { MAX_ACTIVE_BORROWS } = require("../constants/libraryRules");
 
 function parseDailyFineAmount(value) {
   const amount = parseInt(value, 10);
@@ -56,6 +58,14 @@ async function borrowBook({
   if (user.status !== "active")
     throw new AppError("User is not active", 400);
   if (book.qty < 1) throw new AppError("No copies available", 400);
+
+  const activeCount = await transactionRepository.countActiveByUserId(borrowerId);
+  if (activeCount >= MAX_ACTIVE_BORROWS) {
+    throw new AppError(
+      `User already has ${MAX_ACTIVE_BORROWS} active books`,
+      400,
+    );
+  }
 
   if (new Date(due_date) < new Date(borrow_date)) {
     throw new AppError("Due date cannot be before borrow date", 400);
@@ -154,6 +164,8 @@ async function returnBook(transactionId) {
       client,
     );
     await bookRepository.incrementQty(transaction.book_id, client);
+
+    await holdQueueService.syncHoldQueues(client);
 
     const updated = await transactionRepository.findByIdWithDetails(
       transactionId,

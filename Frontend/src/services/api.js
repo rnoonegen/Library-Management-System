@@ -54,6 +54,7 @@ export const api = {
   updateUser: (id, user) =>
     request(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(user) }),
   deleteUser: (id) => request(`/admin/users/${id}`, { method: "DELETE" }),
+  getUserBorrows: (id) => request(`/admin/users/${id}/borrows`),
   createUser: (user) =>
     request("/admin/users", { method: "POST", body: JSON.stringify(user) }),
 
@@ -118,5 +119,16 @@ export const api = {
   getMyBorrows: () => request("/borrows/mine"),
   updateProfile: (payload) =>
     request("/profile", { method: "PUT", body: JSON.stringify(payload) }),
+
+  getNotifications: () => request("/notifications"),
+  getUnreadNotificationCount: () => request("/notifications/unread-count"),
+  markNotificationRead: (id) =>
+    request(`/notifications/${id}/read`, { method: "PATCH" }),
+  markAllNotificationsRead: () =>
+    request("/notifications/read-all", { method: "PATCH" }),
+
+  cancelBorrowRequest: (id) =>
+    request(`/borrow-requests/${id}`, { method: "DELETE" }),
+  getHoldQueueSummary: () => request("/admin/borrow-requests/summary"),
 };
 

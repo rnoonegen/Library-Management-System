@@ -1,11 +1,14 @@
 import { useState } from 'react';
 
-export default function Modal({ title, children, onClose }) {
+export default function Modal({ title, subtitle, children, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{title}</h2>
+          <div className="modal-header-text">
+            <h2>{title}</h2>
+            {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+          </div>
           <button className="modal-close" onClick={onClose} aria-label="Close">
             ×
           </button>

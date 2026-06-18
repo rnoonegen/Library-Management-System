@@ -56,11 +56,29 @@ async function findById(id) {
 
 async function findPendingByBorrowId(borrowId) {
   const { rows } = await getPool().query(
-    `SELECT id FROM extension_requests
-     WHERE borrow_id = $1 AND status = 'pending'`,
+    `SELECT id FROM extension_requests WHERE borrow_id = $1 AND status = 'pending'`,
     [borrowId],
   );
   return rows[0] || null;
+}
+
+async function findPendingByUserId(userId) {
+  const { rows } = await getPool().query(
+    `SELECT id FROM extension_requests WHERE user_id = $1 AND status = 'pending' LIMIT 1`,
+    [userId],
+  );
+  return rows[0] || null;
+}
+
+async function countApprovedInMonth(userId, year, month) {
+  const { rows } = await getPool().query(
+    `SELECT COUNT(*)::int AS count FROM extension_requests
+     WHERE user_id = $1 AND status = 'approved'
+       AND EXTRACT(YEAR FROM reviewed_at) = $2
+       AND EXTRACT(MONTH FROM reviewed_at) = $3`,
+    [userId, year, month],
+  );
+  return rows[0].count;
 }
 
 async function create(data, client) {
@@ -95,6 +113,8 @@ module.exports = {
   findByUserId,
   findById,
   findPendingByBorrowId,
+  findPendingByUserId,
+  countApprovedInMonth,
   create,
   review,
 };

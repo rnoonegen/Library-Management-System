@@ -12,6 +12,7 @@ export default function UsersContent({
   onRoleChange,
   onEdit,
   onDelete,
+  onView,
 }) {
   return (
     <>
@@ -70,6 +71,7 @@ export default function UsersContent({
                 </div>
               </dl>
               <div className="user-card-actions">
+                <Button variant="secondary" onClick={() => onView(user)}>View</Button>
                 <Button variant="secondary" onClick={() => onEdit(user)}>Edit</Button>
                 <Button variant="danger" onClick={() => onDelete(user.id)}>Delete</Button>
               </div>

@@ -1,7 +1,10 @@
 import Button from 'components/common/Button';
+import StatusBadge from 'components/common/StatusBadge';
+import { formatDateOnly } from 'utils/formatDate';
 
 export default function AdminRequestsPanel({
   tab,
+  queueSummary,
   borrowRequests,
   extensionRequests,
   loading,
@@ -12,28 +15,54 @@ export default function AdminRequestsPanel({
   return (
     <>
       <div className="tab-bar">
-        <button
-          type="button"
-          className={tab === 'borrow' ? 'tab active' : 'tab'}
-          onClick={() => onTabChange('borrow')}
-        >
-          Borrow ({borrowRequests.length})
+        <button type="button" className={tab === 'summary' ? 'tab active' : 'tab'} onClick={() => onTabChange('summary')}>
+          Queue overview ({queueSummary.length})
         </button>
-        <button
-          type="button"
-          className={tab === 'extension' ? 'tab active' : 'tab'}
-          onClick={() => onTabChange('extension')}
-        >
-          Extension ({extensionRequests.length})
+        <button type="button" className={tab === 'ready' ? 'tab active' : 'tab'} onClick={() => onTabChange('ready')}>
+          Ready for pickup ({borrowRequests.filter((r) => r.status === 'ready').length})
+        </button>
+        <button type="button" className={tab === 'extension' ? 'tab active' : 'tab'} onClick={() => onTabChange('extension')}>
+          Extensions ({extensionRequests.length})
         </button>
       </div>
 
       <div className="tab-panel">
         {loading ? (
-          <div className="loading">Loading requests...</div>
-        ) : tab === 'borrow' ? (
-          borrowRequests.length === 0 ? (
-            <p className="text-muted">No pending borrow requests.</p>
+          <div className="loading">Loading...</div>
+        ) : tab === 'summary' ? (
+          queueSummary.length === 0 ? (
+            <p className="text-muted">No books with active waitlists right now.</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Book</th>
+                    <th>Available</th>
+                    <th>Waiting</th>
+                    <th>Ready</th>
+                    <th>Current borrower</th>
+                    <th>Due date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {queueSummary.map((row) => (
+                    <tr key={row.book_id}>
+                      <td>{row.book_title}</td>
+                      <td>{row.available_qty}</td>
+                      <td><strong>{row.pending_count}</strong></td>
+                      <td>{row.ready_count}</td>
+                      <td>{row.current_borrower_name || '—'}</td>
+                      <td>{formatDateOnly(row.current_borrower_due_date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : tab === 'ready' ? (
+          borrowRequests.filter((r) => r.status === 'ready').length === 0 ? (
+            <p className="text-muted">No books ready for pickup right now.</p>
           ) : (
             <div className="table-wrap">
               <table className="data-table">
@@ -41,19 +70,23 @@ export default function AdminRequestsPanel({
                   <tr>
                     <th>User</th>
                     <th>Book</th>
-                    <th>Date</th>
+                    <th>Collect by</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {borrowRequests.map((row) => (
+                  {borrowRequests.filter((r) => r.status === 'ready').map((row) => (
                     <tr key={row.id}>
                       <td>{row.user_name} ({row.user_username})</td>
                       <td>{row.book_title}</td>
-                      <td>{row.created_at?.split('T')[0]}</td>
+                      <td>{formatDateOnly(row.collect_by)}</td>
                       <td className="table-actions">
-                        <Button variant="primary" onClick={() => onReviewBorrow(row.id, 'approve')}>Approve</Button>
-                        <Button variant="danger" onClick={() => onReviewBorrow(row.id, 'reject')}>Reject</Button>
+                        <Button variant="primary" onClick={() => onReviewBorrow(row.id, 'fulfill')}>
+                          Mark collected
+                        </Button>
+                        <Button variant="danger" onClick={() => onReviewBorrow(row.id, 'cancel')}>
+                          Cancel
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -70,8 +103,8 @@ export default function AdminRequestsPanel({
                 <tr>
                   <th>User</th>
                   <th>Book</th>
-                  <th>Current Due</th>
-                  <th>Requested Due</th>
+                  <th>Current due</th>
+                  <th>Requested due</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -80,8 +113,8 @@ export default function AdminRequestsPanel({
                   <tr key={row.id}>
                     <td>{row.user_name}</td>
                     <td>{row.book_title}</td>
-                    <td>{row.current_due_date?.split('T')[0]}</td>
-                    <td>{row.requested_due_date?.split('T')[0]}</td>
+                    <td>{formatDateOnly(row.current_due_date)}</td>
+                    <td>{formatDateOnly(row.requested_due_date)}</td>
                     <td className="table-actions">
                       <Button variant="primary" onClick={() => onReviewExtension(row.id, 'approve')}>Approve</Button>
                       <Button variant="danger" onClick={() => onReviewExtension(row.id, 'reject')}>Reject</Button>
@@ -96,4 +129,3 @@ export default function AdminRequestsPanel({
     </>
   );
 }
-

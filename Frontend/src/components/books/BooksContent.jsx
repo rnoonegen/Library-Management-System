@@ -1,69 +1,5 @@
 import SearchBar from 'components/common/SearchBar';
-
-function BooksPagination({
-  page,
-  totalPages,
-  startPage,
-  endPage,
-  pageNumbers,
-  onPageChange,
-}) {
-  if (totalPages <= 1) return null;
-
-  return (
-    <nav className="books-pagination" aria-label="Books pagination">
-      <button
-        type="button"
-        className="btn-secondary pagination-btn"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-      >
-        Previous
-      </button>
-      <div className="pagination-pages">
-        {startPage > 1 && (
-          <>
-            <button type="button" className="pagination-page" onClick={() => onPageChange(1)}>
-              1
-            </button>
-            {startPage > 2 && <span className="pagination-ellipsis">…</span>}
-          </>
-        )}
-        {pageNumbers.map((n) => (
-          <button
-            key={n}
-            type="button"
-            className={`pagination-page ${n === page ? 'active' : ''}`}
-            onClick={() => onPageChange(n)}
-            aria-current={n === page ? 'page' : undefined}
-          >
-            {n}
-          </button>
-        ))}
-        {endPage < totalPages && (
-          <>
-            {endPage < totalPages - 1 && <span className="pagination-ellipsis">…</span>}
-            <button
-              type="button"
-              className="pagination-page"
-              onClick={() => onPageChange(totalPages)}
-            >
-              {totalPages}
-            </button>
-          </>
-        )}
-      </div>
-      <button
-        type="button"
-        className="btn-secondary pagination-btn"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-      >
-        Next
-      </button>
-    </nav>
-  );
-}
+import Pagination from 'components/common/Pagination';
 
 function BookCard({ book, onEdit, onDelete }) {
   const fmt = (val) => (val == null || val === '' ? '—' : val);
@@ -170,7 +106,7 @@ export default function BooksContent({
               <BookCard key={book.id} book={book} onEdit={onEdit} onDelete={onDelete} />
             ))}
           </div>
-          <BooksPagination
+          <Pagination
             page={page}
             totalPages={totalPages}
             startPage={startPage}

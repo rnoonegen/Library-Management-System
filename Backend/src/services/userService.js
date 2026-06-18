@@ -3,7 +3,8 @@ const { AppError } = require("../middleware");
 const { hashPassword } = require("../utils/password");
 const { toPublicUser } = require("./authService");
 const transactionRepository = require("../repositories/transactionRepository");
-const { sumOutstandingFine } = require("../utils/fineUtils");
+const { sumOutstandingFine, enrichTransaction } = require("../utils/fineUtils");
+const { MAX_ACTIVE_BORROWS } = require("../constants/libraryRules");
 
 const USER_ROLES = ["teacher", "student"];
 
@@ -16,11 +17,14 @@ async function listUsers(role) {
   const withFine = await Promise.all(
     filtered.map(async (u) => {
       const transactions = await transactionRepository.findByUserId(u.id);
+      const activeBorrowCount = await transactionRepository.countActiveByUserId(u.id);
       return {
         ...toPublicUser(u),
         user_code: u.user_code,
         joined_date: u.joined_date,
         outstanding_fine: sumOutstandingFine(transactions),
+        active_borrow_count: activeBorrowCount,
+        at_borrow_limit: activeBorrowCount >= MAX_ACTIVE_BORROWS,
       };
     }),
   );
@@ -105,6 +109,26 @@ async function deleteUser(userId) {
   return userRepository.remove(userId);
 }
 
+async function getUserBorrowHistory(userId) {
+  const existing = await userRepository.findById(userId);
+  if (!existing || !USER_ROLES.includes(existing.role)) {
+    throw new AppError("User not found", 404);
+  }
+
+  const rows = await transactionRepository.findByUserId(userId);
+  const borrows = rows.map((row) => enrichTransaction(row));
+
+  return {
+    user: {
+      id: existing.id,
+      name: existing.name,
+      user_code: existing.user_code,
+      role: existing.role,
+    },
+    borrows,
+  };
+}
+
 async function updateProfile(userId, data) {
   const existing = await userRepository.findById(userId);
   if (!existing) throw new AppError("User not found", 404);
@@ -136,5 +160,6 @@ module.exports = {
   getNextCode,
   updateUser,
   deleteUser,
+  getUserBorrowHistory,
   updateProfile,
 };

@@ -6,6 +6,7 @@ import SettingsModal from 'components/auth/SettingsModal';
 import HeaderActionButton from 'components/common/HeaderActionButton';
 import ProfileMenu from 'components/common/ProfileMenu';
 import { MoonIcon, SettingsIcon, SunIcon } from 'components/common/HeaderIcons';
+import NotificationBell from 'components/notifications/NotificationBell';
 
 const adminNav = [
   { to: '/', label: 'Dashboard', icon: '📊', end: true },
@@ -19,6 +20,7 @@ const userNav = [
   { to: '/user/books', label: 'Books', icon: '📚', end: false },
   { to: '/user/requests', label: 'My Requests', icon: '📋' },
   { to: '/user/borrows', label: 'My Borrows', icon: '🔄' },
+  { to: '/user/rules', label: 'Rules & Regulations', icon: '📜' },
 ];
 
 const routeMeta = {
@@ -26,10 +28,13 @@ const routeMeta = {
   '/books': { title: 'Books', subtitle: 'Manage book catalog' },
   '/users': { title: 'Users', subtitle: 'Teachers and students' },
   '/transactions': { title: 'Borrows', subtitle: 'Issue and return books' },
-  '/requests': { title: 'Requests', subtitle: 'Borrow and extension approvals' },
-  '/user/books': { title: 'Books', subtitle: 'Browse and request books' },
-  '/user/requests': { title: 'My Requests', subtitle: 'Track your book requests' },
+  '/requests': { title: 'Requests', subtitle: 'Waitlist overview and extensions' },
+  '/notifications': { title: 'Notifications', subtitle: 'Waitlist and extension alerts' },
+  '/user/books': { title: 'Books', subtitle: 'Browse catalog and join waitlists' },
+  '/user/requests': { title: 'My Requests', subtitle: 'Waitlist and extension status' },
   '/user/borrows': { title: 'My Borrows', subtitle: 'Active loans and extensions' },
+  '/user/notifications': { title: 'Notifications', subtitle: 'Hold alerts and updates' },
+  '/user/rules': { title: 'Rules & Regulations', subtitle: 'Library borrowing policies' },
   '/user/profile': { title: 'My Profile', subtitle: 'Update your personal details' },
 };
 
@@ -123,6 +128,7 @@ export default function MainLayout({ dbMode, variant = 'admin' }) {
               onClick={toggleMode}
               ariaLabel={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             />
+            <NotificationBell to={isUser ? '/user/notifications' : '/notifications'} />
             {isUser ? (
               <ProfileMenu
                 user={user}

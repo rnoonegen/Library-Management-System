@@ -9,61 +9,59 @@ async function submitBorrowRequest(req, res) {
 }
 
 async function myBorrowRequests(req, res) {
-  const rows = await requestService.getMyBorrowRequests(req.user.userId);
-  res.json(rows);
+  res.json(await requestService.getMyBorrowRequests(req.user.userId));
+}
+
+async function cancelBorrowRequest(req, res) {
+  res.json(await requestService.cancelBorrowRequest(req.user.userId, req.params.id));
 }
 
 async function listBorrowRequests(req, res) {
-  const rows = await requestService.listBorrowRequests(req.query.status);
-  res.json(rows);
+  res.json(await requestService.listBorrowRequests(req.query.status));
+}
+
+async function holdQueueSummary(req, res) {
+  res.json(await requestService.getHoldQueueSummary());
 }
 
 async function reviewBorrowRequest(req, res) {
-  const result = await requestService.reviewBorrowRequest(
-    req.params.id,
-    req.user.userId,
-    req.body,
+  res.json(
+    await requestService.reviewBorrowRequest(req.params.id, req.user.userId, req.body),
   );
-  res.json(result);
 }
 
 async function submitExtensionRequest(req, res) {
   const result = await requestService.submitExtensionRequest(req.user.userId, {
     borrowId: req.body.borrow_id,
-    requestedDueDate: req.body.requested_due_date,
     reason: req.body.reason,
   });
   res.status(201).json(result);
 }
 
 async function myExtensionRequests(req, res) {
-  const rows = await requestService.getMyExtensionRequests(req.user.userId);
-  res.json(rows);
+  res.json(await requestService.getMyExtensionRequests(req.user.userId));
 }
 
 async function listExtensionRequests(req, res) {
-  const rows = await requestService.listExtensionRequests(req.query.status);
-  res.json(rows);
+  res.json(await requestService.listExtensionRequests(req.query.status));
 }
 
 async function reviewExtensionRequest(req, res) {
-  const result = await requestService.reviewExtensionRequest(
-    req.params.id,
-    req.user.userId,
-    req.body,
+  res.json(
+    await requestService.reviewExtensionRequest(req.params.id, req.user.userId, req.body),
   );
-  res.json(result);
 }
 
 async function myBorrows(req, res) {
-  const rows = await requestService.getMyBorrows(req.user.userId);
-  res.json(rows);
+  res.json(await requestService.getMyBorrows(req.user.userId));
 }
 
 module.exports = {
   submitBorrowRequest,
   myBorrowRequests,
+  cancelBorrowRequest,
   listBorrowRequests,
+  holdQueueSummary,
   reviewBorrowRequest,
   submitExtensionRequest,
   myExtensionRequests,

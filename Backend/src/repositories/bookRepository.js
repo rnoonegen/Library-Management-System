@@ -35,8 +35,9 @@ async function findPaginated(page, limit, search = '') {
   return { books: rows, total };
 }
 
-async function findById(id) {
-  const { rows } = await getPool().query('SELECT * FROM books WHERE id = $1', [id]);
+async function findById(id, client) {
+  const db = client || getPool();
+  const { rows } = await db.query('SELECT * FROM books WHERE id = $1', [id]);
   return rows[0] || null;
 }
 

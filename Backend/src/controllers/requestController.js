@@ -17,7 +17,7 @@ async function cancelBorrowRequest(req, res) {
 }
 
 async function listBorrowRequests(req, res) {
-  res.json(await requestService.listBorrowRequests(req.query.status));
+  res.json(await requestService.listBorrowRequests(req.query));
 }
 
 async function holdQueueSummary(req, res) {
@@ -43,7 +43,7 @@ async function myExtensionRequests(req, res) {
 }
 
 async function listExtensionRequests(req, res) {
-  res.json(await requestService.listExtensionRequests(req.query.status));
+  res.json(await requestService.listExtensionRequests(req.query));
 }
 
 async function reviewExtensionRequest(req, res) {

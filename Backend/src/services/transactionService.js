@@ -27,9 +27,27 @@ function mapTransaction(transaction) {
   });
 }
 
-async function getAllTransactions() {
-  const transactions = await transactionRepository.findAllWithDetails();
-  return transactions.map(mapTransaction);
+async function getAllTransactions(query = {}) {
+  const pageNum = Math.max(1, parseInt(query.page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
+  const { transactions, total } = await transactionRepository.findPaginated(
+    pageNum,
+    limitNum,
+    {
+      search: query.search || "",
+      status: query.status || "all",
+    },
+  );
+  const statusCounts = await transactionRepository.getStatusCounts();
+
+  return {
+    transactions: transactions.map(mapTransaction),
+    total,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.max(1, Math.ceil(total / limitNum)),
+    statusCounts,
+  };
 }
 
 async function borrowBook({
@@ -217,6 +235,7 @@ async function deleteTransaction(id) {
     }
 
     await transactionRepository.remove(id, client);
+    await holdQueueService.syncHoldQueues(client);
     return { success: true };
   });
 }

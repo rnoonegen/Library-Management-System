@@ -19,6 +19,45 @@ async function findAll({ role } = {}) {
   return rows;
 }
 
+async function findPaginated(page, limit, { role, search } = {}) {
+  const offset = (page - 1) * limit;
+  const conditions = ["role IN ('teacher', 'student')"];
+  const params = [];
+  let paramIndex = 1;
+
+  if (role) {
+    conditions.push(`role = $${paramIndex}`);
+    params.push(role);
+    paramIndex += 1;
+  }
+
+  const term = (search || "").trim();
+  if (term) {
+    conditions.push(
+      `(name ILIKE $${paramIndex} OR user_code ILIKE $${paramIndex} OR username ILIKE $${paramIndex})`,
+    );
+    params.push(`%${term}%`);
+    paramIndex += 1;
+  }
+
+  const where = `WHERE ${conditions.join(" AND ")}`;
+
+  const { rows: countRows } = await getPool().query(
+    `SELECT COUNT(*)::int AS total FROM users ${where}`,
+    params,
+  );
+  const total = countRows[0].total;
+
+  const { rows } = await getPool().query(
+    `SELECT ${PUBLIC_FIELDS} FROM users ${where}
+     ORDER BY name, username
+     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    [...params, limit, offset],
+  );
+
+  return { users: rows, total };
+}
+
 async function findById(id) {
   const { rows } = await getPool().query(
     `SELECT ${PUBLIC_FIELDS} FROM users WHERE id = $1`,
@@ -125,8 +164,31 @@ async function remove(id) {
   return rowCount > 0;
 }
 
+async function findActiveMembers() {
+  const { rows } = await getPool().query(
+    `SELECT id, name, user_code, role, status
+     FROM users
+     WHERE role IN ('teacher', 'student') AND status = 'active'
+     ORDER BY name, username`,
+  );
+  return rows;
+}
+
+async function getMemberStats() {
+  const { rows } = await getPool().query(`
+    SELECT
+      COUNT(*)::int AS total_users,
+      COUNT(*) FILTER (WHERE status = 'active')::int AS active_users,
+      COUNT(*) FILTER (WHERE status != 'active')::int AS inactive_users
+    FROM users
+    WHERE role IN ('teacher', 'student')
+  `);
+  return rows[0];
+}
+
 module.exports = {
   findAll,
+  findPaginated,
   findById,
   findByUsername,
   findAuthById,
@@ -136,4 +198,6 @@ module.exports = {
   update,
   updatePassword,
   remove,
+  getMemberStats,
+  findActiveMembers,
 };

@@ -4,6 +4,8 @@ import { api } from 'services/api';
 import Button from 'components/common/Button';
 import FormField from 'components/common/FormField';
 
+import { validatePassword } from 'utils/passwordValidation';
+
 export default function ChangePasswordForm({ onSuccess, onCancel, forced = false }) {
   const { user, refreshUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -22,14 +24,15 @@ export default function ChangePasswordForm({ onSuccess, onCancel, forced = false
       setError('New passwords do not match');
       return;
     }
-    if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters');
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
     setSubmitting(true);
     try {
-      await api.changePassword({ currentPassword, newPassword });
+      const result = await api.changePassword({ currentPassword, newPassword });
       await refreshUser();
       setSuccess('Password updated successfully');
       setCurrentPassword('');

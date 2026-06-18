@@ -7,18 +7,18 @@ const notificationService = require("./notificationService");
 const holdQueueService = require("./holdQueueService");
 const { withTransaction } = require("../config/connection");
 const { AppError } = require("../middleware");
-const { enrichTransaction, isOverdue, getTodayDateOnly, formatDateOnly } = require("../utils/fineUtils");
+const {
+  enrichTransaction,
+  isOverdue,
+  getTodayDateOnly,
+  formatDateOnly,
+  addDays,
+} = require("../utils/fineUtils");
 const {
   MAX_ACTIVE_BORROWS,
   LOAN_DAYS,
   MAX_EXTENSIONS_PER_MONTH,
 } = require("../constants/libraryRules");
-
-function addDays(dateStr, days) {
-  const date = new Date(dateStr);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0];
-}
 
 async function ensureHoldQueuesSynced() {
   await holdQueueService.syncHoldQueues();
@@ -32,7 +32,7 @@ async function submitBorrowRequest(userId, bookId) {
   const activeCount = await transactionRepository.countActiveByUserId(userId);
   if (activeCount >= MAX_ACTIVE_BORROWS) {
     throw new AppError(
-      "You already have the maximum of 3 active books",
+      `You already have the maximum of ${MAX_ACTIVE_BORROWS} active books`,
       400,
     );
   }
@@ -100,17 +100,28 @@ async function cancelBorrowRequest(userId, requestId) {
 }
 
 async function getMyBorrowRequests(userId) {
-  await ensureHoldQueuesSynced();
   return borrowRequestRepository.findByUserId(userId);
 }
 
-async function listBorrowRequests(status) {
-  await ensureHoldQueuesSynced();
-  return borrowRequestRepository.findAll({ status: status || "active" });
+async function listBorrowRequests(query = {}) {
+  const pageNum = Math.max(1, parseInt(query.page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
+  const status = query.status || "active";
+  const { requests, total } = await borrowRequestRepository.findPaginated(
+    pageNum,
+    limitNum,
+    { status },
+  );
+  return {
+    requests,
+    total,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.max(1, Math.ceil(total / limitNum)),
+  };
 }
 
 async function getHoldQueueSummary() {
-  await ensureHoldQueuesSynced();
   return borrowRequestRepository.findQueueSummary();
 }
 
@@ -279,7 +290,7 @@ async function submitExtensionRequest(userId, { borrowId, reason }) {
   await notificationService.notifyAdmins({
     type: "admin_extension_request",
     title: "Extension request",
-    message: `${user?.name || "A user"} requested a 14-day extension for "${created.book_title}" (new due: ${requestedDueDate}).`,
+    message: `${user?.name || "A user"} requested a ${LOAN_DAYS}-day extension for "${created.book_title}" (new due: ${requestedDueDate}).`,
     relatedId: id,
   });
 
@@ -290,8 +301,22 @@ async function getMyExtensionRequests(userId) {
   return extensionRequestRepository.findByUserId(userId);
 }
 
-async function listExtensionRequests(status) {
-  return extensionRequestRepository.findAll({ status });
+async function listExtensionRequests(query = {}) {
+  const pageNum = Math.max(1, parseInt(query.page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
+  const status = query.status || undefined;
+  const { requests, total } = await extensionRequestRepository.findPaginated(
+    pageNum,
+    limitNum,
+    { status },
+  );
+  return {
+    requests,
+    total,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.max(1, Math.ceil(total / limitNum)),
+  };
 }
 
 async function reviewExtensionRequest(id, adminId, { action, adminNote }) {
@@ -383,8 +408,12 @@ async function getMyBorrows(userId) {
   const hasPendingExtension = !!(await extensionRequestRepository.findPendingByUserId(userId));
   const extensionQuotaUsed = extensionsUsedThisMonth >= MAX_EXTENSIONS_PER_MONTH;
 
-  const borrows = await Promise.all(
-    rows.map(async (row) => {
+  const activeRows = rows.filter((row) => row.status !== "returned");
+  const holdCounts = await borrowRequestRepository.getActiveHoldCountsByBookIds(
+    [...new Set(activeRows.map((row) => row.book_id))],
+  );
+
+  const borrows = rows.map((row) => {
       const enriched = enrichTransaction(row);
       const dueDateStr = row.due_date?.split?.("T")[0] || row.due_date;
       const extendedDueDate = addDays(dueDateStr, LOAN_DAYS);
@@ -411,7 +440,7 @@ async function getMyBorrows(userId) {
         canExtend = false;
         extendReason = "Extension request pending review";
       } else {
-        const holdsOnBook = await borrowRequestRepository.countActiveHoldsByBook(row.book_id);
+        const holdsOnBook = holdCounts.get(row.book_id) || 0;
         if (holdsOnBook > 0) {
           canExtend = false;
           extendReason = "Someone is waiting for this book";
@@ -424,8 +453,7 @@ async function getMyBorrows(userId) {
         extend_reason: extendReason,
         extended_due_date: extendedDueDate,
       };
-    }),
-  );
+    });
 
   return {
     borrows,

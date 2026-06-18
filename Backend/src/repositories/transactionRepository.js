@@ -14,6 +14,54 @@ async function findAllWithDetails() {
   return rows;
 }
 
+async function findPaginated(page, limit, { search, status } = {}) {
+  const offset = (page - 1) * limit;
+  const conditions = [];
+  const params = [];
+  let paramIndex = 1;
+
+  if (status && status !== "all") {
+    if (status === "overdue") {
+      conditions.push(`t.status != 'returned' AND t.due_date < CURRENT_DATE`);
+    } else if (status === "borrowed") {
+      conditions.push(`t.status != 'returned' AND t.due_date >= CURRENT_DATE`);
+    } else {
+      conditions.push(`t.status = $${paramIndex}`);
+      params.push(status);
+      paramIndex += 1;
+    }
+  }
+
+  const term = (search || "").trim();
+  if (term) {
+    conditions.push(`b.title ILIKE $${paramIndex}`);
+    params.push(`%${term}%`);
+    paramIndex += 1;
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const { rows: countRows } = await getPool().query(
+    `SELECT COUNT(*)::int AS total
+     FROM transactions t
+     JOIN books b ON t.book_id = b.id
+     JOIN users u ON t.user_id = u.id
+     ${where}`,
+    params,
+  );
+  const total = countRows[0].total;
+
+  const { rows } = await getPool().query(
+    `${TRANSACTION_WITH_DETAILS}
+     ${where}
+     ORDER BY t.borrow_date DESC
+     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    [...params, limit, offset],
+  );
+
+  return { transactions: rows, total };
+}
+
 async function findByUserId(userId) {
   const { rows } = await getPool().query(
     `${TRANSACTION_WITH_DETAILS} WHERE t.user_id = $1 ORDER BY t.borrow_date DESC`,
@@ -56,6 +104,15 @@ async function countActiveByUserId(userId, client) {
     [userId],
   );
   return rows[0].count;
+}
+
+async function findByUserIds(userIds) {
+  if (!userIds.length) return [];
+  const { rows } = await getPool().query(
+    "SELECT * FROM transactions WHERE user_id = ANY($1::int[])",
+    [userIds],
+  );
+  return rows;
 }
 
 async function findActiveBorrowByUserAndBook(userId, bookId, client) {
@@ -142,9 +199,40 @@ async function remove(id, client) {
   await db.query("DELETE FROM transactions WHERE id = $1", [id]);
 }
 
+async function getLoanStats(today) {
+  const { rows } = await getPool().query(
+    `SELECT
+      COUNT(*) FILTER (WHERE status != 'returned')::int AS active_borrows,
+      COUNT(*) FILTER (
+        WHERE status != 'returned' AND due_date < $1::date
+      )::int AS overdue_loans
+    FROM transactions`,
+    [today],
+  );
+  return rows[0];
+}
+
+async function getStatusCounts() {
+  const { rows } = await getPool().query(`
+    SELECT
+      COUNT(*)::int AS all,
+      COUNT(*) FILTER (
+        WHERE status != 'returned' AND due_date >= CURRENT_DATE
+      )::int AS borrowed,
+      COUNT(*) FILTER (
+        WHERE status != 'returned' AND due_date < CURRENT_DATE
+      )::int AS overdue,
+      COUNT(*) FILTER (WHERE status = 'returned')::int AS returned
+    FROM transactions
+  `);
+  return rows[0];
+}
+
 module.exports = {
   findAllWithDetails,
+  findPaginated,
   findByUserId,
+  findByUserIds,
   findByIdWithDetails,
   findById,
   findActiveById,
@@ -157,4 +245,6 @@ module.exports = {
   markPaid,
   update,
   remove,
+  getLoanStats,
+  getStatusCounts,
 };

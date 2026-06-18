@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
-import { api } from 'services/api';
-import { useModal } from 'components/common/Modal';
-import TransactionsContent from 'components/transactions/TransactionsContent';
-import TransactionFormModal from 'components/transactions/TransactionFormModal';
-
-const PAGE_SIZE = 12;
+import { useCallback, useEffect, useState } from "react";
+import { api } from "services/api";
+import { useModal } from "components/common/Modal";
+import TransactionsContent from "components/transactions/TransactionsContent";
+import TransactionFormModal from "components/transactions/TransactionFormModal";
+import { PAGE_SIZE, buildPageNumbers } from "utils/pagination";
 
 function openDatePicker(e) {
   try {
@@ -39,6 +38,14 @@ export default function Transactions() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    borrowed: 0,
+    overdue: 0,
+    returned: 0,
+  });
   const [books, setBooks] = useState([]);
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyBorrow);
@@ -47,21 +54,47 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const modal = useModal();
 
-  const loadData = () => {
-    setLoading(true);
-    Promise.all([api.getTransactions(), api.getBooks(), api.getUsers()])
-      .then(([txns, bookList, userList]) => {
-        setTransactions(txns);
+  const loadTransactions = useCallback(
+    (pageNum = page, searchTerm = search, status = statusFilter) => {
+      setLoading(true);
+      const params = { page: pageNum, limit: PAGE_SIZE };
+      const trimmed = searchTerm.trim();
+      if (trimmed) params.search = trimmed;
+      if (status && status !== "all") params.status = status;
+
+      return api
+        .getTransactions(params)
+        .then((result) => {
+          setTransactions(result.transactions);
+          setTotal(result.total);
+          setTotalPages(result.totalPages);
+          setPage(result.page);
+          if (result.statusCounts) {
+            setStatusCounts(result.statusCounts);
+          }
+        })
+        .catch((err) => setError(err.message))
+        .finally(() => setLoading(false));
+    },
+    [page, search, statusFilter],
+  );
+
+  const loadLookups = useCallback(() => {
+    Promise.all([api.getAvailableBooks(), api.getActiveUsers()])
+      .then(([bookList, userList]) => {
         setBooks(bookList);
         setUsers(userList);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  };
+      .catch((err) => setError(err.message));
+  }, []);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadLookups();
+  }, [loadLookups]);
+
+  useEffect(() => {
+    loadTransactions(page, search, statusFilter);
+  }, [page, search, statusFilter, loadTransactions]);
 
   const openCreate = () => {
     setForm({
@@ -112,7 +145,8 @@ export default function Transactions() {
         borrow_date: new Date().toISOString().split("T")[0],
         due_date: addDays(new Date().toISOString().split("T")[0], 14),
       });
-      loadData();
+      loadLookups();
+      loadTransactions(page, search, statusFilter);
     } catch (err) {
       setError(err.message);
     }
@@ -122,7 +156,8 @@ export default function Transactions() {
     if (!confirm("Delete this loan record?")) return;
     try {
       await api.deleteTransaction(id);
-      loadData();
+      loadLookups();
+      loadTransactions(page, search, statusFilter);
     } catch (err) {
       setError(err.message);
     }
@@ -131,7 +166,8 @@ export default function Transactions() {
   const handleReturn = async (id) => {
     try {
       await api.returnBook(id);
-      loadData();
+      loadLookups();
+      loadTransactions(page, search, statusFilter);
     } catch (err) {
       setError(err.message);
     }
@@ -140,52 +176,11 @@ export default function Transactions() {
   const handlePayment = async (id) => {
     try {
       await api.recordPayment(id);
-      loadData();
+      loadTransactions(page, search, statusFilter);
     } catch (err) {
       setError(err.message);
     }
   };
-
-  const availableBooks = books.filter((b) => b.qty > 0);
-  const activeUsers = users.filter((u) => u.status === "active");
-
-  const statusCounts = transactions.reduce(
-    (counts, txn) => {
-      counts.all += 1;
-      if (txn.status === "borrowed") counts.borrowed += 1;
-      if (txn.status === "overdue") counts.overdue += 1;
-      if (txn.status === "returned") counts.returned += 1;
-      return counts;
-    },
-    { all: 0, borrowed: 0, overdue: 0, returned: 0 },
-  );
-
-  const searchTerm = search.trim().toLowerCase();
-  const statusFilteredTransactions =
-    statusFilter === "all"
-      ? transactions
-      : transactions.filter((txn) => txn.status === statusFilter);
-  const filteredTransactions = searchTerm
-    ? statusFilteredTransactions.filter((txn) =>
-        txn.book_title.toLowerCase().includes(searchTerm),
-      )
-    : statusFilteredTransactions;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredTransactions.length / PAGE_SIZE),
-  );
-  const safePage = Math.min(page, totalPages);
-  const paginatedTransactions = filteredTransactions.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
-  const start =
-    filteredTransactions.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
-  const end = Math.min(safePage * PAGE_SIZE, filteredTransactions.length);
-
-  useEffect(() => {
-    if (page !== safePage) setPage(safePage);
-  }, [page, safePage]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
@@ -196,6 +191,11 @@ export default function Transactions() {
     setStatusFilter(status);
     setPage(1);
   };
+
+  const safePage = Math.min(page, totalPages);
+  const start = total === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(safePage * PAGE_SIZE, total);
+  const { startPage, endPage, pageNumbers } = buildPageNumbers(safePage, totalPages);
 
   const emptyMessage =
     statusFilter === "all"
@@ -208,17 +208,6 @@ export default function Transactions() {
           hint: `There are no loans with status "${statusFilter}" right now.`,
         };
 
-  const pageNumbers = [];
-  const maxVisible = 5;
-  let startPage = Math.max(1, safePage - Math.floor(maxVisible / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-  if (endPage - startPage + 1 < maxVisible) {
-    startPage = Math.max(1, endPage - maxVisible + 1);
-  }
-  for (let i = startPage; i <= endPage; i += 1) {
-    pageNumbers.push(i);
-  }
-
   return (
     <div className="page transactions-page">
       {error && <div className="error-banner">{error}</div>}
@@ -228,8 +217,8 @@ export default function Transactions() {
         search={search}
         statusFilter={statusFilter}
         statusCounts={statusCounts}
-        filteredTransactions={filteredTransactions}
-        paginatedTransactions={paginatedTransactions}
+        filteredTransactions={transactions}
+        paginatedTransactions={transactions}
         safePage={safePage}
         totalPages={totalPages}
         startPage={startPage}
@@ -237,7 +226,7 @@ export default function Transactions() {
         pageNumbers={pageNumbers}
         start={start}
         end={end}
-        searchTerm={searchTerm}
+        searchTerm={search.trim().toLowerCase()}
         emptyMessage={emptyMessage}
         onSearchChange={handleSearchChange}
         onStatusChange={handleStatusChange}
@@ -252,8 +241,8 @@ export default function Transactions() {
         isOpen={modal.isOpen}
         editingId={editingId}
         form={form}
-        availableBooks={availableBooks}
-        activeUsers={activeUsers}
+        availableBooks={books}
+        activeUsers={users}
         datePickerProps={datePickerProps}
         onClose={modal.close}
         onSubmit={handleSubmit}
@@ -274,4 +263,3 @@ export default function Transactions() {
     </div>
   );
 }
-

@@ -1,9 +1,23 @@
 const authService = require("../services/authService");
+const { setAuthCookies, clearAuthCookies, getRefreshToken } = require("../utils/cookies");
 
 async function login(req, res) {
   const { username, password } = req.body;
-  const result = await authService.login(username, password);
-  res.json(result);
+  const session = await authService.login(username, password);
+  setAuthCookies(res, session.accessToken, session.refreshToken);
+  res.json({ user: session.user });
+}
+
+async function refresh(req, res) {
+  const session = await authService.refreshSession(getRefreshToken(req));
+  setAuthCookies(res, session.accessToken, session.refreshToken);
+  res.json({ user: session.user });
+}
+
+async function logout(req, res) {
+  await authService.logout(getRefreshToken(req));
+  clearAuthCookies(res);
+  res.json({ message: "Logged out successfully" });
 }
 
 async function me(req, res) {
@@ -18,7 +32,8 @@ async function changePassword(req, res) {
     currentPassword,
     newPassword,
   );
-  res.json(result);
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+  res.json({ message: result.message, user: result.user });
 }
 
-module.exports = { login, me, changePassword };
+module.exports = { login, refresh, logout, me, changePassword };

@@ -1,34 +1,7 @@
 import Modal from 'components/common/Modal';
 import StatusBadge from 'components/common/StatusBadge';
 import { formatDateOnly } from 'utils/formatDate';
-
-function groupBorrowsByBook(borrows) {
-  const groups = new Map();
-
-  borrows.forEach((row) => {
-    const key = row.book_id;
-    if (!groups.has(key)) {
-      groups.set(key, {
-        book_id: row.book_id,
-        book_title: row.book_title,
-        count: 0,
-        loans: [],
-      });
-    }
-
-    const group = groups.get(key);
-    group.count += 1;
-    group.loans.push({
-      id: row.id,
-      borrow_date: row.borrow_date,
-      return_date: row.return_date,
-      due_date: row.due_date,
-      status: row.status,
-    });
-  });
-
-  return Array.from(groups.values());
-}
+import { groupBorrowsByBook } from 'utils/groupBorrowsByBook';
 
 export default function UserBorrowHistoryModal({
   isOpen,

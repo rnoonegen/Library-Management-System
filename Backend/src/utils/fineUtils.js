@@ -16,6 +16,12 @@ function getTodayDateOnly() {
   return new Date().toISOString().split("T")[0];
 }
 
+function addDays(dateStr, days) {
+  const date = new Date(dateStr);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split("T")[0];
+}
+
 /** Normalize DB date (Date object or string) to YYYY-MM-DD. */
 function formatDateOnly(value) {
   if (value == null || value === "") return "";
@@ -126,6 +132,7 @@ function sumOutstandingFine(transactions) {
 
 module.exports = {
   getTodayDateOnly,
+  addDays,
   formatDateOnly,
   isOverdue,
   getOverdueDays,

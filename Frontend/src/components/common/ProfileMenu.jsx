@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDownIcon, UserIcon } from 'components/common/HeaderIcons';
+import { ChevronDownIcon, SettingsIcon, UserIcon } from 'components/common/HeaderIcons';
 
-export default function ProfileMenu({ user, onChangePassword, onLogout }) {
+export default function ProfileMenu({
+  user,
+  onChangePassword,
+  onLogout,
+  variant = 'user',
+}) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
+  const isAdmin = variant === 'admin';
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -40,10 +46,12 @@ export default function ProfileMenu({ user, onChangePassword, onLogout }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Profile menu"
+        aria-label={isAdmin ? 'Account menu' : 'Profile menu'}
       >
-        <span className="header-action-icon"><UserIcon /></span>
-        <span className="header-action-label">Profile</span>
+        <span className="header-action-icon">
+          {isAdmin ? <SettingsIcon /> : <UserIcon />}
+        </span>
+        <span className="header-action-label">{isAdmin ? 'Account' : 'Profile'}</span>
         <ChevronDownIcon />
       </button>
 
@@ -53,9 +61,11 @@ export default function ProfileMenu({ user, onChangePassword, onLogout }) {
             <strong>{user?.name || user?.username}</strong>
             <span>{user?.username}</span>
           </div>
-          <button type="button" role="menuitem" onClick={goToProfile}>
-            View profile
-          </button>
+          {!isAdmin && (
+            <button type="button" role="menuitem" onClick={goToProfile}>
+              View profile
+            </button>
+          )}
           <button type="button" role="menuitem" onClick={handleChangePassword}>
             Change password
           </button>
@@ -67,4 +77,3 @@ export default function ProfileMenu({ user, onChangePassword, onLogout }) {
     </div>
   );
 }
-

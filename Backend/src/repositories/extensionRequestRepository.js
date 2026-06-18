@@ -27,6 +27,36 @@ async function findAll({ status } = {}) {
   return rows;
 }
 
+async function findPaginated(page, limit, { status } = {}) {
+  const offset = (page - 1) * limit;
+  const params = [];
+  let where = "";
+  if (status) {
+    where = "WHERE er.status = $1";
+    params.push(status);
+  }
+
+  const { rows: countRows } = await getPool().query(
+    `SELECT COUNT(*)::int AS total FROM extension_requests er ${where}`,
+    params,
+  );
+  const total = countRows[0].total;
+
+  const { rows } = await getPool().query(
+    `SELECT ${SELECT_FIELDS}
+     FROM extension_requests er
+     JOIN users u ON u.id = er.user_id
+     JOIN transactions t ON t.id = er.borrow_id
+     JOIN books b ON b.id = t.book_id
+     ${where}
+     ORDER BY er.created_at DESC
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, limit, offset],
+  );
+
+  return { requests: rows, total };
+}
+
 async function findByUserId(userId) {
   const { rows } = await getPool().query(
     `SELECT ${SELECT_FIELDS}
@@ -110,6 +140,7 @@ async function review(id, { status, adminNote, reviewedBy }, client) {
 
 module.exports = {
   findAll,
+  findPaginated,
   findByUserId,
   findById,
   findPendingByBorrowId,

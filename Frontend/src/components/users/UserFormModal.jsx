@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import Modal from 'components/common/Modal';
 import Button from 'components/common/Button';
 import FormField from 'components/common/FormField';
+import PasswordRequirements from 'components/common/PasswordRequirements';
+import { validatePassword } from 'utils/passwordValidation';
 
 export default function UserFormModal({
   isOpen,
@@ -11,16 +14,48 @@ export default function UserFormModal({
   setForm,
   onRoleChange,
 }) {
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
   if (!isOpen) return null;
 
+  function handleClose() {
+    setFormError('');
+    onClose();
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setFormError('');
+
+    if (!editingId) {
+      const passwordError = validatePassword(form.password);
+      if (passwordError) {
+        setFormError(passwordError);
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      await onSubmit(form);
+      setFormError('');
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
-    <Modal title={editingId ? 'Edit User' : 'Add User'} onClose={onClose}>
-      <form onSubmit={onSubmit}>
+    <Modal title={editingId ? 'Edit User' : 'Add User'} onClose={handleClose}>
+      <form onSubmit={handleSubmit} noValidate>
         {!editingId && (
           <>
             <div className="form-group">
-              <label>Role</label>
+              <label htmlFor="user-role">Role</label>
               <select
+                id="user-role"
                 value={form.role}
                 onChange={(e) => onRoleChange(e.target.value)}
               >
@@ -40,9 +75,13 @@ export default function UserFormModal({
               label="Initial password"
               type="password"
               value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              onChange={(e) => {
+                setFormError('');
+                setForm({ ...form, password: e.target.value });
+              }}
               required
             />
+            <PasswordRequirements password={form.password} />
           </>
         )}
         <FormField
@@ -67,8 +106,9 @@ export default function UserFormModal({
         />
         {editingId && (
           <div className="form-group">
-            <label>Status</label>
+            <label htmlFor="user-status">Status</label>
             <select
+              id="user-status"
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
             >
@@ -77,14 +117,18 @@ export default function UserFormModal({
             </select>
           </div>
         )}
+
+        {formError && <p className="form-error">{formError}</p>}
+
         <div className="form-actions">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary">
-            {editingId ? 'Save' : 'Create User'}
+          <Button type="button" variant="secondary" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={submitting}>
+            {submitting ? 'Saving...' : editingId ? 'Save' : 'Create User'}
           </Button>
         </div>
       </form>
     </Modal>
   );
 }
-

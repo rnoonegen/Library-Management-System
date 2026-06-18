@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'context/AuthContext';
 import ChangePasswordForm from 'components/auth/ChangePasswordForm';
+import AppBrand from 'components/common/AppBrand';
 
 export default function ChangePassword() {
   const { user } = useAuth();
@@ -12,21 +13,23 @@ export default function ChangePassword() {
 
   return (
     <div className="auth-screen">
-      <div className="auth-card">
-        <div className="auth-brand">
-          <h1>Change password</h1>
-          <p>
-            {user?.mustChangePassword
+      <div className="auth-panel">
+        <AppBrand
+          variant="auth"
+          title="Change password"
+          subtitle={
+            user?.mustChangePassword
               ? 'Set a new password before continuing.'
-              : 'Update your account password.'}
-          </p>
-        </div>
-        <ChangePasswordForm
-          forced={user?.mustChangePassword}
-          onSuccess={handleSuccess}
+              : 'Update your account password.'
+          }
         />
+        <div className="auth-panel-body">
+          <ChangePasswordForm
+            forced={user?.mustChangePassword}
+            onSuccess={handleSuccess}
+          />
+        </div>
       </div>
     </div>
   );
 }
-

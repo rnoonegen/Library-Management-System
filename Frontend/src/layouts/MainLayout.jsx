@@ -3,9 +3,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useThemeMode } from 'context/ThemeContext';
 import { useAuth } from 'context/AuthContext';
 import SettingsModal from 'components/auth/SettingsModal';
+import AppBrand from 'components/common/AppBrand';
 import HeaderActionButton from 'components/common/HeaderActionButton';
 import ProfileMenu from 'components/common/ProfileMenu';
-import { MoonIcon, SettingsIcon, SunIcon } from 'components/common/HeaderIcons';
+import { MoonIcon, SunIcon } from 'components/common/HeaderIcons';
 import NotificationBell from 'components/notifications/NotificationBell';
 
 const adminNav = [
@@ -38,7 +39,7 @@ const routeMeta = {
   '/user/profile': { title: 'My Profile', subtitle: 'Update your personal details' },
 };
 
-export default function MainLayout({ dbMode, variant = 'admin' }) {
+export default function MainLayout({ variant = 'admin' }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { pathname } = useLocation();
@@ -50,8 +51,8 @@ export default function MainLayout({ dbMode, variant = 'admin' }) {
   const navItems = isUser ? userNav : adminNav;
   const meta = routeMeta[pathname] || { title: 'Library', subtitle: '' };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -62,13 +63,7 @@ export default function MainLayout({ dbMode, variant = 'admin' }) {
       )}
 
       <aside className="sidebar">
-        <div className="sidebar-brand">
-          <span className="brand-icon" aria-hidden="true">📖</span>
-          <div>
-            <h1 className="brand-title">Library MS</h1>
-            <p className="brand-tagline">{isUser ? 'User Portal' : 'Admin'}</p>
-          </div>
-        </div>
+        <AppBrand tagline={isUser ? 'User Portal' : 'Admin Portal'} />
 
         <nav className="sidebar-nav" aria-label="Main navigation">
           {navItems.map((item) => (
@@ -84,24 +79,6 @@ export default function MainLayout({ dbMode, variant = 'admin' }) {
             </NavLink>
           ))}
         </nav>
-
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <span className="sidebar-user-name">{user?.name || user?.username}</span>
-            <span className="sidebar-user-role">{user?.username}</span>
-          </div>
-          {!isUser && (
-            <button type="button" className="btn-secondary sidebar-logout" onClick={handleLogout}>
-              Logout
-            </button>
-          )}
-          {!isUser && (
-            <span className="db-badge">
-              <span className="db-dot" aria-hidden="true" />
-              {dbMode === 'online' ? 'Online PostgreSQL' : 'Local PostgreSQL'}
-            </span>
-          )}
-        </div>
       </aside>
 
       <div className="app-shell">
@@ -117,6 +94,7 @@ export default function MainLayout({ dbMode, variant = 'admin' }) {
           </button>
 
           <div className="app-header-text">
+            <AppBrand variant="header" />
             <h2 className="app-header-title">{meta.title}</h2>
             {meta.subtitle && <p className="app-header-subtitle">{meta.subtitle}</p>}
           </div>
@@ -129,21 +107,12 @@ export default function MainLayout({ dbMode, variant = 'admin' }) {
               ariaLabel={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             />
             <NotificationBell to={isUser ? '/user/notifications' : '/notifications'} />
-            {isUser ? (
-              <ProfileMenu
-                user={user}
-                onChangePassword={() => setSettingsOpen(true)}
-                onLogout={handleLogout}
-              />
-            ) : (
-              <HeaderActionButton
-                icon={<SettingsIcon />}
-                label="Account"
-                onClick={() => setSettingsOpen(true)}
-                ariaLabel="Open account settings and change password"
-                title="Change password"
-              />
-            )}
+            <ProfileMenu
+              user={user}
+              variant={isUser ? 'user' : 'admin'}
+              onChangePassword={() => setSettingsOpen(true)}
+              onLogout={handleLogout}
+            />
           </div>
         </header>
 

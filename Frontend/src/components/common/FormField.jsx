@@ -25,10 +25,10 @@ export default function FormField({
   type = 'text',
   value,
   onChange,
-  required,
-  readOnly,
-  placeholder,
-  hint,
+  required = false,
+  readOnly = false,
+  placeholder = '',
+  hint = '',
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
@@ -66,8 +66,7 @@ export default function FormField({
       ) : (
         <input {...inputProps} />
       )}
-      {hint && <p className="form-hint">{hint}</p>}
+      {hint ? <p className="form-hint">{hint}</p> : null}
     </div>
   );
 }
-

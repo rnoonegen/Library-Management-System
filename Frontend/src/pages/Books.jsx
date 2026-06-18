@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from 'services/api';
 import { useModal } from 'components/common/Modal';
 import BooksContent from 'components/books/BooksContent';
 import BookFormModal from 'components/books/BookFormModal';
-
-const PAGE_SIZE = 12;
+import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
 
 function openDatePicker(e) {
   try {
@@ -45,40 +44,27 @@ export default function Books() {
   const [loading, setLoading] = useState(true);
   const modal = useModal();
 
-  const loadBooks = (pageNum = page, searchTerm = search) => {
+  const loadBooks = useCallback((pageNum = page, searchTerm = search) => {
     setLoading(true);
     const params = { page: pageNum, limit: PAGE_SIZE };
     const trimmed = searchTerm.trim();
     if (trimmed) params.search = trimmed;
 
-    api
+    return api
       .getBooks(params)
       .then((result) => {
         setBooks(result.books);
         setTotal(result.total);
         setTotalPages(result.totalPages);
-        if (result.page !== page) setPage(result.page);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    setLoading(true);
-    const params = { page, limit: PAGE_SIZE };
-    const trimmed = search.trim();
-    if (trimmed) params.search = trimmed;
-
-    api
-      .getBooks(params)
-      .then((result) => {
-        setBooks(result.books);
-        setTotal(result.total);
-        setTotalPages(result.totalPages);
+        setPage(result.page);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [page, search]);
+
+  useEffect(() => {
+    loadBooks(page, search);
+  }, [page, search, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
@@ -150,17 +136,7 @@ export default function Books() {
 
   const start = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, total);
-
-  const pageNumbers = [];
-  const maxVisible = 5;
-  let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-  if (endPage - startPage + 1 < maxVisible) {
-    startPage = Math.max(1, endPage - maxVisible + 1);
-  }
-  for (let i = startPage; i <= endPage; i += 1) {
-    pageNumbers.push(i);
-  }
+  const { startPage, endPage, pageNumbers } = buildPageNumbers(page, totalPages);
 
   return (
     <div className="page books-page">
@@ -208,4 +184,3 @@ export default function Books() {
     </div>
   );
 }
-

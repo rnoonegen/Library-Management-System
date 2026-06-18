@@ -2,34 +2,27 @@ const { getDbMode } = require("../config/database");
 const bookRepository = require("../repositories/bookRepository");
 const userRepository = require("../repositories/userRepository");
 const transactionRepository = require("../repositories/transactionRepository");
-const { enrichTransaction } = require("../utils/fineUtils");
+const { getTodayDateOnly } = require("../utils/fineUtils");
 
 async function getDashboardStats() {
-  const [allBooks, allUsersData, allTransactions] = await Promise.all([
-    bookRepository.findAll(),
-    userRepository.findAll(),
-    transactionRepository.findAllWithDetails(),
+  const today = getTodayDateOnly();
+  const [inventory, members, loans] = await Promise.all([
+    bookRepository.getInventoryStats(),
+    userRepository.getMemberStats(),
+    transactionRepository.getLoanStats(today),
   ]);
 
-  const allUsers = allUsersData.filter((u) =>
-    ["teacher", "student"].includes(u.role),
-  );
-  const enrichedTransactions = allTransactions.map(enrichTransaction);
-  const activeBorrows = enrichedTransactions.filter(
-    (t) => t.status !== "returned",
-  );
-  const overdue = enrichedTransactions.filter((t) => t.is_overdue);
-  const availableCopies = allBooks.reduce((sum, b) => sum + b.qty, 0);
-  const activeUsers = allUsers.filter((u) => u.status === "active").length;
+  const availableCopies = inventory.available_copies;
+  const activeBorrows = loans.active_borrows;
 
   return {
-    totalBooks: allBooks.length,
-    totalCopies: availableCopies + activeBorrows.length,
+    totalBooks: inventory.total_books,
+    totalCopies: availableCopies + activeBorrows,
     availableCopies,
-    totalUsers: allUsers.length,
-    activeUsers,
-    inactiveUsers: allUsers.length - activeUsers,
-    overdueLoans: overdue.length,
+    totalUsers: members.total_users,
+    activeUsers: members.active_users,
+    inactiveUsers: members.inactive_users,
+    overdueLoans: loans.overdue_loans,
     dbMode: getDbMode(),
   };
 }

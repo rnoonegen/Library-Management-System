@@ -1,15 +1,15 @@
 # Library Management System
 
-Web application for managing books, users, and borrow/return transactions.
+Web application for managing books, users, borrow/return transactions, hold queues, extensions, fines, and notifications.
 
-**Stack:** React (frontend) · Node.js/Express (backend) · MySQL (database)
+**Stack:** React 18 (frontend) · Node.js / Express (backend) · PostgreSQL (database)
 
 ## Project Structure
 
 ```
 Library-Management-System/
-├── backend/     # Node.js Express API
-└── frontend/    # React UI
+├── Backend/     # Node.js Express API
+└── Frontend/    # React SPA
 ```
 
 ## Setup
@@ -17,108 +17,82 @@ Library-Management-System/
 Install dependencies in each folder:
 
 ```bash
-cd backend
+cd Backend
 npm install
 
-cd ../frontend
+cd ../Frontend
 npm install
 ```
 
-## Run
+Copy environment files:
+
+```bash
+copy Backend\.env.example Backend\.env
+copy Frontend\.env.example Frontend\.env
+```
+
+Edit `Backend/.env` with your PostgreSQL connection and a strong `JWT_SECRET`.
+
+## Run (development)
 
 Open **two terminals**:
 
 **Terminal 1 — Backend**
 ```bash
-cd backend
+cd Backend
 npm run dev
 ```
 API: http://localhost:5000
 
 **Terminal 2 — Frontend**
 ```bash
-cd frontend
+cd Frontend
 npm start
 ```
-UI: http://localhost:3000
+UI: http://localhost:3000 (proxies `/api` to the backend)
 
-## Database Options (Local + Online)
+## Database
 
-The backend supports **three modes**. Switch using `DB_PROFILE` in `backend/.env`:
+The backend uses **PostgreSQL** with automatic schema migration on startup (`Backend/src/db/migrate.js`).
 
-| Mode | `DB_PROFILE` | Best for |
-|------|--------------|----------|
-| In-memory | `memory` | Quick testing without MySQL |
-| Local MySQL | `local` | Offline work on your own PC |
-| Online MySQL | `online` | **Team development** (shared data) |
+| `DB_PROFILE` | Use case |
+|--------------|----------|
+| `local` | PostgreSQL on your machine |
+| `online` | Shared cloud database (team development) |
 
-### Recommended for 2-person team
+Set either `DATABASE_URL` or individual `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` in `Backend/.env`.
 
-- **Both developers:** use `DB_PROFILE=online` with the **same shared cloud database**
-- **Optional offline:** one developer can switch to `DB_PROFILE=local` when working without internet
+On first run, set `SEED_ADMIN_PASSWORD` to create the default `admin` user (only if missing). **Remove or unset this after initial setup** — it is not used to reset passwords on restart.
 
-### Option A — Online MySQL (team shared)
+## Production checklist
 
-1. Create a MySQL database on [Railway](https://railway.app) or [Aiven](https://aiven.io)
-2. Copy the team config:
-
-```bash
-copy backend\.env.online.example backend\.env
-```
-
-3. Paste your cloud connection details into `backend/.env`
-4. Create tables:
-
-```bash
-cd backend
-npm run db:init
-```
-
-5. Start the backend — sidebar shows **Online MySQL**
-
-### Option B — Local MySQL (your PC only)
-
-1. Install [MySQL Community Server](https://dev.mysql.com/downloads/mysql/)
-2. Copy local config:
-
-```bash
-copy backend\.env.local.example backend\.env
-```
-
-3. Edit `backend/.env` with your MySQL password
-4. Create database and tables:
-
-```bash
-cd backend
-npm run db:init
-```
-
-5. Start the backend — sidebar shows **Local MySQL**
-
-### Switching between local and online
-
-Just change `DB_PROFILE` in `backend/.env` and restart the backend:
-
-```
-DB_PROFILE=local    # your computer
-DB_PROFILE=online   # shared cloud database
-DB_PROFILE=memory   # no MySQL
-```
-
-**Never commit `.env` to git** — each developer keeps their own copy.
+- Set `NODE_ENV=production`
+- Use a strong random `JWT_SECRET` (32+ characters)
+- Set `CORS_ORIGINS` to your frontend URL(s)
+- Set `TRUST_PROXY=true` when behind nginx / a load balancer
+- Auth uses **httpOnly cookies** (access + refresh tokens) — frontend must call API with credentials
+- Use `DB_SSL=true` and prefer `DB_SSL_REJECT_UNAUTHORIZED=true` when your provider supports it
+- Build frontend with `REACT_APP_API_URL` pointing to your API
+- Never commit `.env` files
 
 ## Features
 
 - **Dashboard** — library stats overview
-- **Books** — add, edit, delete books
-- **Users** — manage teachers and students
-- **Borrow / Return** — loan books and process returns
+- **Books** — catalog management with search and pagination
+- **Users** — admin management of teachers and students
+- **Borrow / Return** — loans, fines, and payments
+- **Hold queue** — request → ready → collect workflow
+- **Extensions** — due-date extension requests
+- **Notifications** — in-app alerts for users and admins
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check |
+| POST | `/api/auth/login` | Login (rate-limited) |
+| GET | `/api/auth/me` | Current user profile |
+| POST | `/api/auth/change-password` | Change password |
 | GET | `/api/dashboard/stats` | Dashboard statistics |
 | GET/POST | `/api/books` | List / create books |
 | PUT/DELETE | `/api/books/:id` | Update / delete book |
@@ -127,3 +101,6 @@ DB_PROFILE=memory   # no MySQL
 | GET | `/api/transactions` | List transactions |
 | POST | `/api/transactions/borrow` | Borrow a book |
 | POST | `/api/transactions/:id/return` | Return a book |
+| POST | `/api/transactions/:id/pay` | Record fine payment |
+
+See `Backend/src/routes/index.js` for the full route list.

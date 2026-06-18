@@ -3,12 +3,7 @@ const borrowRequestRepository = require("../repositories/borrowRequestRepository
 const transactionRepository = require("../repositories/transactionRepository");
 const notificationService = require("./notificationService");
 const { PICKUP_DAYS } = require("../constants/libraryRules");
-
-function addDays(dateStr, days) {
-  const date = new Date(dateStr);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0];
-}
+const { addDays, getTodayDateOnly } = require("../utils/fineUtils");
 
 async function findNextEligibleHold(bookId, client) {
   let skipped = true;
@@ -39,7 +34,7 @@ async function promoteNextHold(bookId, client) {
   const next = await findNextEligibleHold(bookId, client);
   if (!next) return null;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayDateOnly();
   const collectBy = addDays(today, PICKUP_DAYS);
 
   await borrowRequestRepository.markReady(

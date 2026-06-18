@@ -14,13 +14,13 @@ export default function Requests() {
     setLoading(true);
     Promise.all([
       api.getHoldQueueSummary(),
-      api.getBorrowRequests('active'),
-      api.getExtensionRequests('pending'),
+      api.getBorrowRequests({ status: 'active', limit: 100 }),
+      api.getExtensionRequests({ status: 'pending', limit: 100 }),
     ])
-      .then(([summary, borrows, extensions]) => {
+      .then(([summary, borrowResult, extensionResult]) => {
         setQueueSummary(summary);
-        setBorrowRequests(borrows);
-        setExtensionRequests(extensions);
+        setBorrowRequests(borrowResult.requests || borrowResult);
+        setExtensionRequests(extensionResult.requests || extensionResult);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));

@@ -1,8 +1,8 @@
 const userService = require("../services/userService");
 
 async function listUsers(req, res) {
-  const users = await userService.listUsers(req.query.role);
-  res.json(users);
+  const result = await userService.listUsers(req.query);
+  res.json(result);
 }
 
 async function createUser(req, res) {
@@ -35,8 +35,14 @@ async function updateProfile(req, res) {
   res.json(user);
 }
 
+async function listActiveUsers(req, res) {
+  const users = await userService.listActiveUsers();
+  res.json(users);
+}
+
 module.exports = {
   listUsers,
+  listActiveUsers,
   createUser,
   nextCode,
   updateUser,

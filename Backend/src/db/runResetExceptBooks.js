@@ -20,7 +20,9 @@ async function main() {
   Object.entries(tableCounts).forEach(([table, count]) => {
     console.log(`  ${table}: ${count}`);
   });
-  console.log("Default admin: username admin / password Admin@123");
+  console.log(
+    `Default admin: username admin / password from SEED_ADMIN_PASSWORD in .env`,
+  );
   process.exit(0);
 }
 

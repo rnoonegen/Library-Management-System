@@ -8,27 +8,64 @@ const { MAX_ACTIVE_BORROWS } = require("../constants/libraryRules");
 
 const USER_ROLES = ["teacher", "student"];
 
-async function listUsers(role) {
-  if (role && !USER_ROLES.includes(role)) {
+function buildBorrowStatsMap(userIds, transactions) {
+  const map = new Map();
+  for (const userId of userIds) {
+    map.set(userId, { active_count: 0, outstanding_fine: 0, transactions: [] });
+  }
+  for (const row of transactions) {
+    const entry = map.get(row.user_id);
+    if (!entry) continue;
+    entry.transactions.push(row);
+    if (row.status !== "returned") {
+      entry.active_count += 1;
+    }
+  }
+  for (const [, entry] of map) {
+    entry.outstanding_fine = sumOutstandingFine(entry.transactions);
+    delete entry.transactions;
+  }
+  return map;
+}
+
+function mapUserWithStats(user, statsMap) {
+  const stats = statsMap.get(user.id) || { active_count: 0, outstanding_fine: 0 };
+  return {
+    ...toPublicUser(user),
+    user_code: user.user_code,
+    joined_date: user.joined_date,
+    outstanding_fine: stats.outstanding_fine,
+    active_borrow_count: stats.active_count,
+    at_borrow_limit: stats.active_count >= MAX_ACTIVE_BORROWS,
+  };
+}
+
+async function listUsers(query = {}) {
+  const pageNum = Math.max(1, parseInt(query.page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
+  const roleFilter =
+    query.role && query.role !== "all" ? query.role : null;
+
+  if (roleFilter && !USER_ROLES.includes(roleFilter)) {
     throw new AppError("Invalid role filter", 400);
   }
-  const users = await userRepository.findAll({ role });
-  const filtered = users.filter((u) => USER_ROLES.includes(u.role));
-  const withFine = await Promise.all(
-    filtered.map(async (u) => {
-      const transactions = await transactionRepository.findByUserId(u.id);
-      const activeBorrowCount = await transactionRepository.countActiveByUserId(u.id);
-      return {
-        ...toPublicUser(u),
-        user_code: u.user_code,
-        joined_date: u.joined_date,
-        outstanding_fine: sumOutstandingFine(transactions),
-        active_borrow_count: activeBorrowCount,
-        at_borrow_limit: activeBorrowCount >= MAX_ACTIVE_BORROWS,
-      };
-    }),
-  );
-  return withFine;
+
+  const { users, total } = await userRepository.findPaginated(pageNum, limitNum, {
+    role: roleFilter,
+    search: query.search || "",
+  });
+
+  const userIds = users.map((u) => u.id);
+  const transactions = await transactionRepository.findByUserIds(userIds);
+  const statsMap = buildBorrowStatsMap(userIds, transactions);
+
+  return {
+    users: users.map((user) => mapUserWithStats(user, statsMap)),
+    total,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.max(1, Math.ceil(total / limitNum)),
+  };
 }
 
 async function createUser(data) {
@@ -132,7 +169,7 @@ async function getUserBorrowHistory(userId) {
 async function updateProfile(userId, data) {
   const existing = await userRepository.findById(userId);
   if (!existing) throw new AppError("User not found", 404);
-  if (!["teacher", "student"].includes(existing.role)) {
+  if (!USER_ROLES.includes(existing.role)) {
     throw new AppError("Only teachers and students can update profile here", 403);
   }
   if (!data.name?.trim()) {
@@ -154,8 +191,20 @@ async function updateProfile(userId, data) {
   return toPublicUser(user);
 }
 
+async function listActiveUsers() {
+  const users = await userRepository.findActiveMembers();
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    userCode: user.user_code,
+    role: user.role,
+    status: user.status,
+  }));
+}
+
 module.exports = {
   listUsers,
+  listActiveUsers,
   createUser,
   getNextCode,
   updateUser,

@@ -1,0 +1,11 @@
+{
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.suggest.paths": true,
+  "javascript.validate.enable": true,
+  "js/ts.implicitProjectConfig.checkJs": false,
+  "typescript.validate.enable": false,
+  "eslint.workingDirectories": [
+    { "directory": "Frontend", "changeProcessCWD": true },
+    { "directory": "Backend", "changeProcessCWD": true }
+  ]
+}

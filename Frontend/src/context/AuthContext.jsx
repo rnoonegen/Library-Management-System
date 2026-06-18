@@ -1,17 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, setAuthToken } from 'services/api';
+import { api, setUnauthorizedHandler } from 'services/api';
 
 const AuthContext = createContext(null);
-
-const STORAGE_KEY = 'library_auth_token';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const logout = useCallback(() => {
-    setAuthToken(null);
-    localStorage.removeItem(STORAGE_KEY);
+  const logout = useCallback(async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Session may already be expired.
+    }
     setUser(null);
   }, []);
 
@@ -22,27 +23,24 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem(STORAGE_KEY);
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.assign('/login');
+      }
+    });
+  }, []);
 
-    setAuthToken(token);
+  useEffect(() => {
     api
       .getMe()
       .then(setUser)
-      .catch(() => {
-        localStorage.removeItem(STORAGE_KEY);
-        setAuthToken(null);
-      })
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (username, password) => {
-    const { token, user: profile } = await api.login(username, password);
-    localStorage.setItem(STORAGE_KEY, token);
-    setAuthToken(token);
+    const { user: profile } = await api.login(username, password);
     setUser(profile);
     return profile;
   }, []);
@@ -68,4 +66,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
-

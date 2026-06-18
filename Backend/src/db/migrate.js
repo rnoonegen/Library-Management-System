@@ -1,8 +1,8 @@
-const bcrypt = require("bcrypt");
+const { hashPassword } = require("../utils/password");
 const { getPool } = require("../config/connection");
 
-const ADMIN_PASSWORD = "Admin@123";
-const MIGRATION_TEMP_PASSWORD = "Temp@123";
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+const MIGRATION_TEMP_PASSWORD = process.env.SEED_TEMP_PASSWORD || "Temp@123";
 
 async function runMigrations() {
   const pool = getPool();
@@ -154,6 +154,58 @@ async function runMigrations() {
     WHERE status IN ('pending', 'ready')
   `);
 
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_transactions_user_id
+    ON transactions (user_id)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_transactions_book_status
+    ON transactions (book_id, status)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_transactions_status_due
+    ON transactions (status, due_date)
+    WHERE status != 'returned'
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_borrow_requests_book_status
+    ON borrow_requests (book_id, status)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_borrow_requests_user_id
+    ON borrow_requests (user_id)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_read
+    ON notifications (user_id, is_read)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_books_title_lower
+    ON books (LOWER(title))
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_users_role_status
+    ON users (role, status)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash VARCHAR(64) NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id
+    ON refresh_tokens (user_id)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires
+    ON refresh_tokens (expires_at)
+  `);
+
   await seedAdmin(pool);
 }
 
@@ -190,7 +242,7 @@ async function migrateLegacyUserSchema(pool) {
     return;
   }
 
-  const tempHash = await bcrypt.hash(MIGRATION_TEMP_PASSWORD, 10);
+  const tempHash = await hashPassword(MIGRATION_TEMP_PASSWORD);
   const idMap = new Map();
 
   for (let i = 0; i < legacyRows.length; i++) {
@@ -296,16 +348,16 @@ async function ensureTransactionsUserId(pool) {
 }
 
 async function seedAdmin(pool) {
-  const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  if (!ADMIN_PASSWORD) {
+    console.warn("SEED_ADMIN_PASSWORD not set — skipping admin user seed");
+    return;
+  }
+  const hash = await hashPassword(ADMIN_PASSWORD);
   await pool.query(
     `INSERT INTO users (
       username, password_hash, role, name, status, must_change_password
     ) VALUES ('admin', $1, 'admin', 'Library Admin', 'active', false)
-    ON CONFLICT (username) DO UPDATE SET
-      password_hash = EXCLUDED.password_hash,
-      role = 'admin',
-      status = 'active',
-      must_change_password = false`,
+    ON CONFLICT (username) DO NOTHING`,
     [hash],
   );
 }

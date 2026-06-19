@@ -3,11 +3,24 @@ const REFRESH_COOKIE = "library_refresh";
 const ACCESS_MS = 15 * 60 * 1000;
 const REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
 
+function isSecureCookie() {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+  return process.env.NODE_ENV === "production";
+}
+
+function cookieSameSite() {
+  if (process.env.COOKIE_SAME_SITE === "none") return "none";
+  if (process.env.COOKIE_SAME_SITE === "lax") return "lax";
+  if (process.env.COOKIE_SAME_SITE === "strict") return "strict";
+  return process.env.NODE_ENV === "production" ? "lax" : "lax";
+}
+
 function cookieBase() {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    secure: isSecureCookie(),
+    sameSite: cookieSameSite(),
     path: "/",
   };
 }

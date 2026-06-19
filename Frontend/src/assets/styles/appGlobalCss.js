@@ -800,6 +800,41 @@ video {
   flex: 1;
   min-height: 0;
 }
+.confirm-dialog,
+.reason-dialog {
+  max-width: 440px;
+}
+.confirm-dialog .modal-body,
+.reason-dialog .modal-body {
+  padding-top: 0.25rem;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+.reason-dialog textarea {
+  width: 100%;
+  min-height: 5.5rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+.reason-dialog textarea:focus {
+  outline: 2px solid var(--accent-border);
+  border-color: var(--accent-muted);
+}
+.reason-dialog textarea:disabled {
+  opacity: 0.7;
+}
 .form-group {
   margin-bottom: 1rem;
 }

@@ -10,6 +10,8 @@ import UserFormModal from 'components/users/UserFormModal';
 
 import UserBorrowHistoryModal from 'components/users/UserBorrowHistoryModal';
 
+import { useActionDialog } from 'hooks/useActionDialog';
+
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
 
 
@@ -63,6 +65,8 @@ export default function Users() {
   const modal = useModal();
 
   const viewModal = useModal();
+
+  const { askConfirm, ActionDialog } = useActionDialog();
 
   const [viewUser, setViewUser] = useState(null);
 
@@ -227,25 +231,22 @@ export default function Users() {
 
 
   const handleDelete = async (id) => {
-
-    if (!window.confirm('Delete this user?')) return;
+    const confirmed = await askConfirm({
+      title: 'Delete user',
+      message: 'Are you sure you want to delete this user? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
-
       await api.deleteUser(id);
-
       const nextPage = users.length === 1 && page > 1 ? page - 1 : page;
-
       if (nextPage !== page) setPage(nextPage);
-
       else loadUsers();
-
     } catch (err) {
-
       setError(err.message);
-
     }
-
   };
 
 
@@ -359,6 +360,8 @@ export default function Users() {
         + User
 
       </button>
+
+      <ActionDialog />
 
     </div>
 

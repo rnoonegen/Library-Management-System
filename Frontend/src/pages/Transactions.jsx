@@ -3,6 +3,7 @@ import { api } from "services/api";
 import { useModal } from "components/common/Modal";
 import TransactionsContent from "components/transactions/TransactionsContent";
 import TransactionFormModal from "components/transactions/TransactionFormModal";
+import { useActionDialog } from "hooks/useActionDialog";
 import { PAGE_SIZE, buildPageNumbers } from "utils/pagination";
 
 function openDatePicker(e) {
@@ -53,6 +54,7 @@ export default function Transactions() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const modal = useModal();
+  const { askConfirm, ActionDialog } = useActionDialog();
 
   const loadTransactions = useCallback(
     (pageNum = page, searchTerm = search, status = statusFilter) => {
@@ -153,7 +155,13 @@ export default function Transactions() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this loan record?")) return;
+    const confirmed = await askConfirm({
+      title: "Delete loan record",
+      message: "Are you sure you want to delete this loan record? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     try {
       await api.deleteTransaction(id);
       loadLookups();
@@ -260,6 +268,8 @@ export default function Transactions() {
         </span>
         <span className="transactions-fab-label">Borrow Book</span>
       </button>
+
+      <ActionDialog />
     </div>
   );
 }

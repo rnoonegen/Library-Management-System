@@ -63,7 +63,7 @@ function UserBookCard({
           <Button
             variant="primary"
             disabled={!canJoin || requestingId === book.id}
-            onClick={() => onRequest(book.id)}
+            onClick={() => onRequest(book.id, book.title)}
           >
             {requestingId === book.id ? 'Joining...' : 'Join waitlist'}
           </Button>

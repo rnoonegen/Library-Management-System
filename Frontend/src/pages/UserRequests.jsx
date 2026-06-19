@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from 'services/api';
 import UserRequestsPanel from 'components/requests/UserRequestsPanel';
+import { useActionDialog } from 'hooks/useActionDialog';
 import { filterByBookTitle, paginateItems } from 'utils/pagination';
 
 export default function UserRequests() {
@@ -13,6 +14,7 @@ export default function UserRequests() {
   const [extensionPage, setExtensionPage] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const { askConfirm, ActionDialog } = useActionDialog();
 
   const load = () => {
     setLoading(true);
@@ -57,7 +59,13 @@ export default function UserRequests() {
   }
 
   async function cancelHold(id) {
-    if (!confirm('Cancel this waitlist entry?')) return;
+    const confirmed = await askConfirm({
+      title: 'Cancel waitlist entry',
+      message: 'Are you sure you want to cancel this waitlist entry?',
+      confirmLabel: 'Cancel entry',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await api.cancelBorrowRequest(id);
       load();
@@ -87,6 +95,7 @@ export default function UserRequests() {
         onBorrowPageChange={setBorrowPage}
         onExtensionPageChange={setExtensionPage}
       />
+      <ActionDialog />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from 'services/api';
 import UserBooksContent from 'components/users/UserBooksContent';
+import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
 
 function parseBorrowsForBooks(data) {
@@ -29,6 +30,7 @@ export default function UserBooks() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [requestingId, setRequestingId] = useState(null);
+  const { askConfirm, ActionDialog } = useActionDialog();
 
   const loadUserContext = () =>
     Promise.all([api.getMyBorrows(), api.getMyBorrowRequests()]).then(
@@ -75,8 +77,18 @@ export default function UserBooks() {
     setPage(1);
   };
 
-  async function handleRequest(bookId) {
+  async function handleRequest(bookId, bookTitle) {
     setError('');
+    const confirmed = await askConfirm({
+      title: 'Join waitlist',
+      message: bookTitle
+        ? `Join the waitlist for "${bookTitle}"? You will be notified when a copy is ready for pickup.`
+        : 'Join the waitlist for this book? You will be notified when a copy is ready for pickup.',
+      confirmLabel: 'Join waitlist',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+
     setRequestingId(bookId);
     try {
       await api.submitBorrowRequest(bookId);
@@ -115,6 +127,7 @@ export default function UserBooks() {
         onPageChange={setPage}
         onRequest={handleRequest}
       />
+      <ActionDialog />
     </div>
   );
 }

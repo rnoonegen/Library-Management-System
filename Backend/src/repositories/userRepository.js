@@ -50,7 +50,7 @@ async function findPaginated(page, limit, { role, search } = {}) {
 
   const { rows } = await getPool().query(
     `SELECT ${PUBLIC_FIELDS} FROM users ${where}
-     ORDER BY name, username
+     ORDER BY id ASC
      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
     [...params, limit, offset],
   );

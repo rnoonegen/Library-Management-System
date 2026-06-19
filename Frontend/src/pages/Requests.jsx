@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from 'services/api';
 import AdminRequestsPanel from 'components/requests/AdminRequestsPanel';
+import { useActionDialog } from 'hooks/useActionDialog';
 
 export default function Requests() {
   const [tab, setTab] = useState('summary');
@@ -9,6 +10,7 @@ export default function Requests() {
   const [extensionRequests, setExtensionRequests] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const { askConfirm, askReason, ActionDialog } = useActionDialog();
 
   const load = () => {
     setLoading(true);
@@ -29,13 +31,32 @@ export default function Requests() {
   useEffect(() => { load(); }, []);
 
   async function reviewBorrow(id, action) {
-    const label = action === 'fulfill'
-      ? 'Mark this book as collected and issue to the user?'
-      : 'Cancel this hold? The user will be notified to join the waitlist again, and the next person in queue will be promoted.';
-    if (!confirm(label)) return;
-    const adminNote = action === 'cancel' ? prompt('Note (optional):') : '';
+    setError('');
     try {
-      await api.reviewBorrowRequest(id, { action, adminNote: adminNote || undefined });
+      if (action === 'fulfill') {
+        const confirmed = await askConfirm({
+          title: 'Mark as collected',
+          message: 'Mark this book as collected and issue it to the user?',
+          confirmLabel: 'Mark collected',
+          variant: 'primary',
+        });
+        if (!confirmed) return;
+        await api.reviewBorrowRequest(id, { action });
+      } else {
+        const adminNote = await askReason({
+          title: 'Cancel hold',
+          message:
+            'The user will be notified to join the waitlist again, and the next person in queue will be promoted.',
+          reasonLabel: 'Reason for cancellation',
+          placeholder: 'Enter a reason (optional)',
+          submitLabel: 'Submit',
+        });
+        if (adminNote === null) return;
+        await api.reviewBorrowRequest(id, {
+          action,
+          adminNote: adminNote || undefined,
+        });
+      }
       load();
     } catch (err) {
       setError(err.message);
@@ -43,9 +64,31 @@ export default function Requests() {
   }
 
   async function reviewExtension(id, action) {
-    const adminNote = action === 'reject' ? prompt('Rejection reason (optional):') : '';
+    setError('');
     try {
-      await api.reviewExtensionRequest(id, { action, adminNote: adminNote || undefined });
+      if (action === 'approve') {
+        const confirmed = await askConfirm({
+          title: 'Approve extension',
+          message: 'Extend the due date for this borrow as requested?',
+          confirmLabel: 'Approve',
+          variant: 'primary',
+        });
+        if (!confirmed) return;
+        await api.reviewExtensionRequest(id, { action });
+      } else {
+        const adminNote = await askReason({
+          title: 'Reject extension',
+          message: 'The user will be notified that their extension request was denied.',
+          reasonLabel: 'Rejection reason',
+          placeholder: 'Enter a reason (optional)',
+          submitLabel: 'Submit',
+        });
+        if (adminNote === null) return;
+        await api.reviewExtensionRequest(id, {
+          action,
+          adminNote: adminNote || undefined,
+        });
+      }
       load();
     } catch (err) {
       setError(err.message);
@@ -74,6 +117,8 @@ export default function Requests() {
         onReviewBorrow={reviewBorrow}
         onReviewExtension={reviewExtension}
       />
+
+      <ActionDialog />
     </div>
   );
 }

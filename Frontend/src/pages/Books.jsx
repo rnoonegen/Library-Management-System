@@ -3,6 +3,7 @@ import { api } from 'services/api';
 import { useModal } from 'components/common/Modal';
 import BooksContent from 'components/books/BooksContent';
 import BookFormModal from 'components/books/BookFormModal';
+import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
 
 function openDatePicker(e) {
@@ -43,6 +44,7 @@ export default function Books() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const modal = useModal();
+  const { askConfirm, ActionDialog } = useActionDialog();
 
   const loadBooks = useCallback((pageNum = page, searchTerm = search) => {
     setLoading(true);
@@ -123,7 +125,13 @@ export default function Books() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this book?')) return;
+    const confirmed = await askConfirm({
+      title: 'Delete book',
+      message: 'Are you sure you want to delete this book? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await api.deleteBook(id);
       const nextPage = books.length === 1 && page > 1 ? page - 1 : page;
@@ -181,6 +189,8 @@ export default function Books() {
         </span>
         <span className="books-fab-label">Add Book</span>
       </button>
+
+      <ActionDialog />
     </div>
   );
 }

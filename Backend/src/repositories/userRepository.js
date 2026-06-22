@@ -68,7 +68,7 @@ async function findById(id) {
 
 async function findByUsername(username) {
   const { rows } = await getPool().query(
-    "SELECT * FROM users WHERE username = $1",
+    "SELECT * FROM users WHERE LOWER(username) = LOWER($1)",
     [username],
   );
   return rows[0] || null;

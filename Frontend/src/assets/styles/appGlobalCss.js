@@ -1,6 +1,8 @@
 export const appGlobalCss = `
 html {
   height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 *,
 *::before,
@@ -22,6 +24,7 @@ html {
   --cream: #f5efe6;
   --sage: #dce8da;
   --card-cream: #f4efde;
+  --fab-clearance: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 [data-theme='light'] {
   --bg: #fafafa;
@@ -98,6 +101,8 @@ body {
   color: var(--text);
   line-height: 1.5;
   height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -113,6 +118,8 @@ a:hover {
 }
 #root {
   height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
 }
 button {
@@ -314,6 +321,8 @@ video {
 .layout {
   display: flex;
   height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   background: var(--bg);
 }
@@ -324,6 +333,7 @@ video {
   bottom: 0;
   width: var(--sidebar-width);
   height: 100vh;
+  height: 100dvh;
   background: var(--sidebar-surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -542,7 +552,9 @@ video {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 .app-header {
@@ -604,9 +616,12 @@ video {
 .main-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   padding: 1.5rem 2rem 2rem;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   background:
     var(--brand-gradient-soft),
     var(--bg);
@@ -1376,6 +1391,10 @@ video {
   .app-header {
     padding: 0.9rem 1rem;
     gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .app-header-text .institution-banner {
+    display: none;
   }
   .institution-banner {
     padding: 0.3rem 0.7rem 0.3rem 0.55rem;
@@ -1388,6 +1407,7 @@ video {
   }
   .main-content {
     padding: 1rem;
+    padding-bottom: calc(1rem + var(--fab-clearance));
   }
   .card-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1402,13 +1422,23 @@ video {
   .books-grid,
   .users-grid,
   .transactions-grid {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: 1fr;
   }
   .books-fab,
   .users-fab,
   .transactions-fab {
-    right: 1.25rem;
-    bottom: 1.25rem;
+    right: max(1.25rem, env(safe-area-inset-right, 0px));
+    bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  }
+  .users-count,
+  .books-count,
+  .transactions-count {
+    margin-bottom: 0.5rem;
+  }
+  .users-pagination,
+  .books-pagination,
+  .transactions-pagination {
+    margin-bottom: 0.5rem;
   }
 }
 @media (max-width: 480px) {
@@ -1432,8 +1462,8 @@ video {
   .books-fab,
   .users-fab,
   .transactions-fab {
-    right: 1rem;
-    bottom: 1rem;
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
     width: 3.5rem;
     height: 3.5rem;
     padding: 0;

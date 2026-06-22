@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from 'services/api';
 import AdminRequestsPanel from 'components/requests/AdminRequestsPanel';
 import { useActionDialog } from 'hooks/useActionDialog';
+import { PICKUP_DAYS } from 'constants/libraryRules';
 
 export default function Requests() {
   const [tab, setTab] = useState('summary');
@@ -101,7 +102,7 @@ export default function Requests() {
 
       <div className="rules-banner">
         <p>
-          Waitlists join automatically. When a book is returned, the next user is notified with a 3-day
+          Waitlists join automatically. When a book is returned, the next user is notified with a {PICKUP_DAYS}-day
           collect-by date. If they do not come, use <strong>Cancel</strong> on Ready for pickup — the
           next person in queue is notified automatically.
         </p>

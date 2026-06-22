@@ -355,10 +355,14 @@ export default function Users() {
 
 
 
-      <button type="button" className="users-fab" onClick={() => openCreate('student')}>
-
-        + User
-
+      <button
+        type="button"
+        className="users-fab"
+        onClick={() => openCreate('student')}
+        aria-label="Add user"
+      >
+        <span className="users-fab-icon" aria-hidden="true">+</span>
+        <span className="users-fab-label">User</span>
       </button>
 
       <ActionDialog />

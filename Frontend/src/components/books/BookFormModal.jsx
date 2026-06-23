@@ -5,6 +5,7 @@ export default function BookFormModal({
   editingId,
   form,
   datePickerProps,
+  maxPublicationDate,
   onClose,
   onSubmit,
   setForm,
@@ -23,9 +24,22 @@ export default function BookFormModal({
             <label>Qty</label>
             <input
               type="number"
-              min="0"
+              min={editingId ? 0 : 1}
+              step="1"
               value={form.qty}
-              onChange={(e) => setForm({ ...form, qty: e.target.value })}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  setForm({ ...form, qty: '' });
+                  return;
+                }
+                const parsed = parseInt(raw, 10);
+                const floor = editingId ? 0 : 1;
+                setForm({
+                  ...form,
+                  qty: Number.isNaN(parsed) ? floor : Math.max(floor, parsed),
+                });
+              }}
             />
           </div>
         </div>
@@ -75,8 +89,14 @@ export default function BookFormModal({
           <label>Date of Publication</label>
           <input
             type="date"
+            max={maxPublicationDate}
             value={form.date_of_publication}
-            onChange={(e) => setForm({ ...form, date_of_publication: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (!value || value <= maxPublicationDate) {
+                setForm({ ...form, date_of_publication: value });
+              }
+            }}
             {...datePickerProps}
           />
         </div>

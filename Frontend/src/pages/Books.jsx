@@ -14,6 +14,16 @@ function openDatePicker(e) {
   }
 }
 
+function todayLocalISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+const maxPublicationDate = todayLocalISO();
+
 const datePickerProps = {
   inputMode: 'none',
   onKeyDown: (e) => e.preventDefault(),
@@ -102,13 +112,20 @@ export default function Books() {
     e.preventDefault();
     setError('');
     try {
+      const minQty = editingId ? 0 : 1;
+      const qty = Math.max(minQty, parseInt(form.qty, 10) || minQty);
+      const publicationDate =
+        form.date_of_publication && form.date_of_publication <= maxPublicationDate
+          ? form.date_of_publication
+          : null;
+
       const payload = {
         ...form,
-        qty: parseInt(form.qty, 10),
+        qty,
         price: form.price === '' ? null : form.price,
         subject: form.subject || null,
         abstract: form.abstract || null,
-        date_of_publication: form.date_of_publication || null,
+        date_of_publication: publicationDate,
         grade_level: form.grade_level || null,
       };
       if (editingId) {
@@ -173,6 +190,7 @@ export default function Books() {
         editingId={editingId}
         form={form}
         datePickerProps={datePickerProps}
+        maxPublicationDate={maxPublicationDate}
         onClose={modal.close}
         onSubmit={handleSubmit}
         setForm={setForm}

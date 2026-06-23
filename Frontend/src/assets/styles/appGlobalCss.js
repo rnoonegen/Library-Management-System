@@ -1,8 +1,7 @@
 export const appGlobalCss = `
 html {
   height: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100dvh;
 }
 *,
 *::before,
@@ -24,7 +23,8 @@ html {
   --cream: #f5efe6;
   --sage: #dce8da;
   --card-cream: #f4efde;
-  --fab-clearance: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  --fab-clearance: 4.75rem;
+  --fab-side-clearance: 10.5rem;
 }
 [data-theme='light'] {
   --bg: #fafafa;
@@ -101,8 +101,6 @@ body {
   color: var(--text);
   line-height: 1.5;
   height: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -118,8 +116,6 @@ a:hover {
 }
 #root {
   height: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
   overflow: hidden;
 }
 button {
@@ -321,8 +317,7 @@ video {
 .layout {
   display: flex;
   height: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 0;
   overflow: hidden;
   background: var(--bg);
 }
@@ -551,8 +546,7 @@ video {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
 }
 .app-header {
@@ -623,6 +617,18 @@ video {
   background:
     var(--brand-gradient-soft),
     var(--bg);
+}
+.main-content:has(.books-fab),
+.main-content:has(.users-fab),
+.main-content:has(.transactions-fab) {
+  padding-bottom: calc(1.25rem + var(--fab-clearance) + env(safe-area-inset-bottom, 0px));
+}
+.main-content:has(.books-fab) .books-pagination,
+.main-content:has(.users-fab) .users-pagination,
+.main-content:has(.transactions-fab) .transactions-pagination {
+  max-width: calc(100% - var(--fab-side-clearance));
+  margin-inline: auto;
+  padding-right: 0.5rem;
 }
 .page {
   max-width: 1280px;
@@ -928,7 +934,7 @@ video {
 .books-page,
 .users-page,
 .transactions-page {
-  padding-bottom: 1.25rem;
+  padding-bottom: 0;
 }
 .books-toolbar,
 .users-toolbar,
@@ -1371,6 +1377,10 @@ video {
   }
 }
 @media (max-width: 768px) {
+  :root {
+    --fab-clearance: 4.25rem;
+    --fab-side-clearance: 0;
+  }
   .menu-toggle {
     display: flex;
   }
@@ -1461,12 +1471,17 @@ video {
   }
   .main-content {
     padding: 1rem;
-    padding-bottom: 1rem;
   }
   .main-content:has(.books-fab),
   .main-content:has(.users-fab),
   .main-content:has(.transactions-fab) {
-    padding-bottom: calc(1rem + var(--fab-clearance));
+    padding-bottom: calc(0.75rem + var(--fab-clearance) + env(safe-area-inset-bottom, 0px));
+  }
+  .main-content:has(.books-fab) .books-pagination,
+  .main-content:has(.users-fab) .users-pagination,
+  .main-content:has(.transactions-fab) .transactions-pagination {
+    max-width: 100%;
+    padding-right: 0;
   }
   .card-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1494,13 +1509,12 @@ video {
   .transactions-count {
     margin-bottom: 0.5rem;
   }
-  .users-pagination,
-  .books-pagination,
-  .transactions-pagination {
-    margin-bottom: 0.5rem;
-  }
 }
 @media (max-width: 480px) {
+  :root {
+    --fab-clearance: 4rem;
+    --fab-side-clearance: 0;
+  }
   .card-grid {
     grid-template-columns: 1fr;
   }

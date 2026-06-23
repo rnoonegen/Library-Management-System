@@ -1,5 +1,6 @@
 import Button from "components/common/Button";
 import FormField from "components/common/FormField";
+import { sanitizePhoneInput, PHONE_LENGTH } from "utils/phoneValidation";
 
 export default function UserProfileForm({
   user,
@@ -47,9 +48,15 @@ export default function UserProfileForm({
           id="phone"
           label="Mobile number"
           type="tel"
+          inputMode="numeric"
+          autoComplete="tel"
+          maxLength={PHONE_LENGTH}
           value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, phone: sanitizePhoneInput(e.target.value) })
+          }
           placeholder="e.g. 9876543210"
+          hint={`${PHONE_LENGTH}-digit number only`}
         />
         <div className="form-group">
           <label htmlFor="address">Address</label>

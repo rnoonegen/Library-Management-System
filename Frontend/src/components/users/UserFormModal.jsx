@@ -4,6 +4,7 @@ import Button from 'components/common/Button';
 import FormField from 'components/common/FormField';
 import PasswordRequirements from 'components/common/PasswordRequirements';
 import { validatePassword } from 'utils/passwordValidation';
+import { sanitizePhoneInput, validatePhone, PHONE_LENGTH } from 'utils/phoneValidation';
 
 export default function UserFormModal({
   isOpen,
@@ -34,6 +35,12 @@ export default function UserFormModal({
         setFormError(passwordError);
         return;
       }
+    }
+
+    const phoneError = validatePhone(form.phone);
+    if (phoneError) {
+      setFormError(phoneError);
+      return;
     }
 
     setSubmitting(true);
@@ -101,8 +108,14 @@ export default function UserFormModal({
         <FormField
           id="phone"
           label="Phone"
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel"
+          pattern="[0-9]*"
+          maxLength={PHONE_LENGTH}
           value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          onChange={(e) => setForm({ ...form, phone: sanitizePhoneInput(e.target.value) })}
+          hint={`${PHONE_LENGTH}-digit number only`}
         />
         {editingId && (
           <div className="form-group">

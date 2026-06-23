@@ -1,9 +1,14 @@
 const { z } = require("zod");
 
-const optionalDate = z
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const optionalPastDate = z
   .union([z.string().date(), z.literal(""), z.null()])
   .optional()
-  .transform((v) => (v === "" ? null : v));
+  .transform((v) => (v === "" ? null : v))
+  .refine((v) => !v || v <= todayISO(), {
+    message: "Publication date cannot be in the future",
+  });
 
 const bookBodySchema = z.object({
   isbn: z.string().trim().min(1, "ISBN is required").max(20),
@@ -14,12 +19,14 @@ const bookBodySchema = z.object({
   price: z.coerce.number().min(0).optional().nullable(),
   subject: z.string().max(255).optional().nullable(),
   abstract: z.string().max(5000).optional().nullable(),
-  date_of_publication: optionalDate,
+  date_of_publication: optionalPastDate,
   grade_level: z.string().max(50).optional().nullable(),
 });
 
 const createBookSchema = z.object({
-  body: bookBodySchema,
+  body: bookBodySchema.extend({
+    qty: z.coerce.number().int().min(1, "Quantity must be at least 1").max(10000).optional().default(1),
+  }),
 });
 
 const updateBookSchema = z.object({

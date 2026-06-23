@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "context/AuthContext";
 import { api } from "services/api";
 import UserProfileForm from "components/users/UserProfileForm";
+import { validatePhone } from "utils/phoneValidation";
 
 export default function UserProfile() {
   const { user, refreshUser } = useAuth();
@@ -36,6 +37,13 @@ export default function UserProfile() {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    const phoneError = validatePhone(form.phone);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
+
     setSaving(true);
     try {
       await api.updateProfile(form);

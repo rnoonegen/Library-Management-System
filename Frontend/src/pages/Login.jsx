@@ -1,30 +1,30 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from 'context/AuthContext';
-import Button from 'components/common/Button';
-import AppBrand from 'components/common/AppBrand';
-import FormField from 'components/common/FormField';
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "context/AuthContext";
+import Button from "components/common/Button";
+import AppBrand from "components/common/AppBrand";
+import FormField from "components/common/FormField";
 
 export default function Login() {
   const { login, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from;
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   function redirectAfterAuth(profile) {
     if (profile.mustChangePassword) {
-      navigate('/change-password', { replace: true });
+      navigate("/change-password", { replace: true });
       return;
     }
-    if (from && from !== '/login') {
+    if (from && from !== "/login") {
       navigate(from, { replace: true });
       return;
     }
-    navigate(profile.role === 'admin' ? '/' : '/user/books', { replace: true });
+    navigate(profile.role === "admin" ? "/" : "/user/books", { replace: true });
   }
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
+    setError("");
     setSubmitting(true);
     try {
       const profile = await login(username.trim(), password);
@@ -61,7 +61,9 @@ export default function Login() {
 
         <div className="auth-panel-body">
           <h2 className="auth-card-heading">Welcome back</h2>
-          <p className="auth-card-subheading">Enter your credentials to continue</p>
+          <p className="auth-card-subheading">
+            Enter your credentials to continue
+          </p>
 
           <form onSubmit={handleSubmit}>
             <FormField
@@ -83,8 +85,13 @@ export default function Login() {
 
             {error && <p className="form-error">{error}</p>}
 
-            <Button type="submit" variant="primary" disabled={submitting} className="auth-submit">
-              {submitting ? 'Signing in...' : 'Sign in'}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={submitting}
+              className="auth-submit"
+            >
+              {submitting ? "Signing in..." : "Sign in"}
             </Button>
           </form>
         </div>

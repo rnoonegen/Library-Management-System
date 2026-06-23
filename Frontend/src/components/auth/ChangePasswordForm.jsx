@@ -1,27 +1,32 @@
-import { useState } from 'react';
-import { useAuth } from 'context/AuthContext';
-import { api } from 'services/api';
-import Button from 'components/common/Button';
-import FormField from 'components/common/FormField';
+import { useState } from "react";
+import { useAuth } from "context/AuthContext";
+import { api } from "services/api";
+import Button from "components/common/Button";
+import FormField from "components/common/FormField";
+import PasswordRequirements from "components/common/PasswordRequirements";
 
-import { validatePassword } from 'utils/passwordValidation';
+import { validatePassword } from "utils/passwordValidation";
 
-export default function ChangePasswordForm({ onSuccess, onCancel, forced = false }) {
+export default function ChangePasswordForm({
+  onSuccess,
+  onCancel,
+  forced = false,
+}) {
   const { user, refreshUser } = useAuth();
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+      setError("New passwords do not match");
       return;
     }
     const passwordError = validatePassword(newPassword);
@@ -34,10 +39,10 @@ export default function ChangePasswordForm({ onSuccess, onCancel, forced = false
     try {
       const result = await api.changePassword({ currentPassword, newPassword });
       await refreshUser();
-      setSuccess('Password updated successfully');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setSuccess("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
       onSuccess?.();
     } catch (err) {
       setError(err.message);
@@ -51,7 +56,7 @@ export default function ChangePasswordForm({ onSuccess, onCancel, forced = false
       <FormField
         id="settings-username"
         label="Username"
-        value={user?.username || ''}
+        value={user?.username || ""}
         readOnly
         hint="Username cannot be changed here"
       />
@@ -68,9 +73,13 @@ export default function ChangePasswordForm({ onSuccess, onCancel, forced = false
         label="New password"
         type="password"
         value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
+        onChange={(e) => {
+          setError("");
+          setNewPassword(e.target.value);
+        }}
         required
       />
+      <PasswordRequirements password={newPassword} />
       <FormField
         id="settings-confirmPassword"
         label="Confirm new password"
@@ -81,7 +90,9 @@ export default function ChangePasswordForm({ onSuccess, onCancel, forced = false
       />
 
       {forced && (
-        <p className="form-hint">You must change your password before continuing.</p>
+        <p className="form-hint">
+          You must change your password before continuing.
+        </p>
       )}
 
       {error && <p className="form-error">{error}</p>}
@@ -94,10 +105,9 @@ export default function ChangePasswordForm({ onSuccess, onCancel, forced = false
           </Button>
         )}
         <Button type="submit" variant="primary" disabled={submitting}>
-          {submitting ? 'Saving...' : 'Update password'}
+          {submitting ? "Saving..." : "Update password"}
         </Button>
       </div>
     </form>
   );
 }
-

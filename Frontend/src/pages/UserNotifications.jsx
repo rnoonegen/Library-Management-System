@@ -1,23 +1,43 @@
 import { useEffect, useState } from 'react';
-import { api } from 'services/api';
+import { useNotifications } from 'context/NotificationContext';
 import Button from 'components/common/Button';
 
 export default function UserNotifications() {
-  const [items, setItems] = useState([]);
+  const {
+    notifications,
+    refreshNotifications,
+    markRead,
+    markAllRead,
+  } = useNotifications();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const load = () => {
+  useEffect(() => {
     setLoading(true);
-    api.getNotifications()
-      .then(setItems)
+    refreshNotifications()
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  };
+  }, [refreshNotifications]);
 
-  useEffect(() => { load(); }, []);
+  const unread = notifications.filter((n) => !n.is_read).length;
 
-  const unread = items.filter((n) => !n.is_read).length;
+  async function handleMarkRead(id) {
+    setError('');
+    try {
+      await markRead(id);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleMarkAllRead() {
+    setError('');
+    try {
+      await markAllRead();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   return (
     <div className="page">
@@ -28,7 +48,7 @@ export default function UserNotifications() {
           {unread > 0 ? `${unread} unread notification(s)` : 'All caught up'}
         </p>
         {unread > 0 && (
-          <Button variant="secondary" onClick={() => api.markAllNotificationsRead().then(load)}>
+          <Button variant="secondary" onClick={handleMarkAllRead}>
             Mark all read
           </Button>
         )}
@@ -36,18 +56,18 @@ export default function UserNotifications() {
 
       {loading ? (
         <div className="loading">Loading notifications...</div>
-      ) : items.length === 0 ? (
+      ) : notifications.length === 0 ? (
         <p className="text-muted">No notifications yet.</p>
       ) : (
         <div className="notification-list">
-          {items.map((item) => (
+          {notifications.map((item) => (
             <article key={item.id} className={`notification-item${item.is_read ? '' : ' unread'}`}>
               <h3 className="notification-item-title">{item.title}</h3>
               <p style={{ margin: 0 }}>{item.message}</p>
               <div className="notification-item-meta">
                 {item.created_at?.replace('T', ' ').slice(0, 16)}
                 {!item.is_read && (
-                  <Button variant="secondary" onClick={() => api.markNotificationRead(item.id).then(load)}>
+                  <Button variant="secondary" onClick={() => handleMarkRead(item.id)}>
                     Mark read
                   </Button>
                 )}

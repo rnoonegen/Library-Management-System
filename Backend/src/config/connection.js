@@ -33,9 +33,13 @@ async function withTransaction(callback) {
     await client.query('BEGIN');
     const result = await callback(client);
     await client.query('COMMIT');
+    const { flushNotificationPushQueue } = require('../services/notificationService');
+    await flushNotificationPushQueue();
     return result;
   } catch (err) {
     await client.query('ROLLBACK');
+    const { clearNotificationPushQueue } = require('../services/notificationService');
+    clearNotificationPushQueue();
     throw err;
   } finally {
     client.release();

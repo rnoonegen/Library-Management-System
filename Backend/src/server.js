@@ -5,6 +5,7 @@ const app = require("./app");
 const { connectPostgreSQL } = require("./config/connection");
 const { getDbModeLabel } = require("./config/database");
 const { runMigrations } = require("./db/migrate");
+const { initNotificationSocket } = require("./websocket/notificationSocket");
 
 const PORT = process.env.PORT || 5000;
 
@@ -34,6 +35,7 @@ async function startServer() {
   }
 
   const server = app.listen(PORT, () => {
+    initNotificationSocket(server);
     console.log(`Library API running at http://localhost:${PORT}`);
   });
 

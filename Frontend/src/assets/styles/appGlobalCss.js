@@ -24,7 +24,7 @@ html {
   --cream: #f5efe6;
   --sage: #dce8da;
   --card-cream: #f4efde;
-  --fab-clearance: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  --fab-clearance: calc(4.25rem + env(safe-area-inset-bottom, 0px));
 }
 [data-theme='light'] {
   --bg: #fafafa;
@@ -479,11 +479,9 @@ video {
 .institution-banner-text {
   font-size: 0.78rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.35;
   color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 .sidebar-nav {
   padding: 1rem 0.75rem;
@@ -1389,12 +1387,53 @@ video {
     width: 100%;
   }
   .app-header {
-    padding: 0.9rem 1rem;
-    gap: 0.75rem;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto auto;
+    padding: 0.75rem 1rem;
+    gap: 0.35rem 0.65rem;
+    align-items: start;
+  }
+  .menu-toggle {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: center;
+  }
+  .app-header-text {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    min-width: 0;
+  }
+  .header-actions {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin-left: 0;
+    padding: 0.25rem;
+    align-self: start;
+  }
+  .header-actions > * {
+    border-bottom: 1px solid var(--border);
+  }
+  .header-actions > *:last-child {
+    border-bottom: none;
+  }
+  .header-action-btn:not(:last-child) {
+    border-right: none;
+  }
+  .header-action-btn,
+  .header-icon-link,
+  .profile-menu-trigger {
+    justify-content: center;
+    width: 100%;
+    padding: 0.45rem;
   }
   .app-header-text .institution-banner {
-    display: none;
+    display: inline-flex;
+    margin-bottom: 0.75rem;
+    max-width: 100%;
   }
   .institution-banner {
     padding: 0.3rem 0.7rem 0.3rem 0.55rem;
@@ -1403,10 +1442,30 @@ video {
   .institution-banner-text {
     font-size: 0.68rem;
     white-space: normal;
+    line-height: 1.35;
+  }
+  .app-header-title {
+    font-size: 1.1rem;
     line-height: 1.3;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    margin-top: 0.15rem;
+  }
+  .app-header-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .main-content {
     padding: 1rem;
+    padding-bottom: 1rem;
+  }
+  .main-content:has(.books-fab),
+  .main-content:has(.users-fab),
+  .main-content:has(.transactions-fab) {
     padding-bottom: calc(1rem + var(--fab-clearance));
   }
   .card-grid {
@@ -1479,6 +1538,13 @@ video {
 @media (min-width: 769px) {
   .sidebar-backdrop {
     display: none !important;
+  }
+  .app-header {
+    align-items: flex-start;
+  }
+  .institution-banner {
+    width: fit-content;
+    max-width: 100%;
   }
 }
 .btn {
@@ -1769,7 +1835,10 @@ video {
     display: none;
   }
   .header-action-btn {
-    padding: 0.55rem 0.75rem;
+    padding: 0.45rem;
+  }
+  .profile-menu-trigger {
+    padding: 0.45rem;
   }
 }
 .form-hint {

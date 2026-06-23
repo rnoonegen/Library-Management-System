@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDownIcon, SettingsIcon, UserIcon } from 'components/common/HeaderIcons';
+import { SettingsIcon, UserIcon } from 'components/common/HeaderIcons';
 
 export default function ProfileMenu({
   user,
@@ -52,7 +52,6 @@ export default function ProfileMenu({
           {isAdmin ? <SettingsIcon /> : <UserIcon />}
         </span>
         <span className="header-action-label">{isAdmin ? 'Account' : 'Profile'}</span>
-        <ChevronDownIcon />
       </button>
 
       {open && (

@@ -1,6 +1,5 @@
 import {
   APP_NAME,
-  APP_SHORT_NAME,
   INSTITUTION_MONOGRAM,
   INSTITUTION_NAME,
 } from 'constants/branding';
@@ -19,7 +18,7 @@ export default function AppBrand({
             <span className="brand-monogram-text">{INSTITUTION_MONOGRAM}</span>
           </div>
           <h1 className="brand-name-highlight">{INSTITUTION_NAME}</h1>
-          <p className="brand-app-name">{APP_SHORT_NAME}</p>
+          <p className="brand-app-name">{APP_NAME}</p>
           {tagline && <span className="brand-portal-badge">{tagline}</span>}
         </div>
       </div>

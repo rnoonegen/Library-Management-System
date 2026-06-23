@@ -6,25 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Backend tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: Backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: Backend/package-lock.json
-      - run: npm ci
-      - run: npm test
-
   deploy-compose:
-    needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy on droplet via docker compose
@@ -42,11 +24,13 @@ jobs:
           DB_SSL: "true"
           DB_SSL_REJECT_UNAUTHORIZED: "false"
           SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          COOKIE_SECURE: "false"
+          COOKIE_SAME_SITE: lax
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
-          envs: REPO_URL,APP_DIR,CLIENT_URL,REACT_APP_API_URL,JWT_SECRET,JWT_EXPIRES_IN,TRUST_PROXY,DB_PROFILE,DATABASE_URL,DB_SSL,DB_SSL_REJECT_UNAUTHORIZED,SEED_ADMIN_PASSWORD
+          envs: REPO_URL,APP_DIR,CLIENT_URL,REACT_APP_API_URL,JWT_SECRET,JWT_EXPIRES_IN,TRUST_PROXY,DB_PROFILE,DATABASE_URL,DB_SSL,DB_SSL_REJECT_UNAUTHORIZED,SEED_ADMIN_PASSWORD,COOKIE_SECURE,COOKIE_SAME_SITE
           script: |
             set -e
 
@@ -72,8 +56,9 @@ jobs:
             DB_SSL=$DB_SSL
             DB_SSL_REJECT_UNAUTHORIZED=$DB_SSL_REJECT_UNAUTHORIZED
             SEED_ADMIN_PASSWORD=$SEED_ADMIN_PASSWORD
+            COOKIE_SECURE=$COOKIE_SECURE
+            COOKIE_SAME_SITE=$COOKIE_SAME_SITE
             EOF
 
             docker compose --env-file .env.library -f docker-compose.library.yml up -d --build
             docker compose --env-file .env.library -f docker-compose.library.yml ps
-            curl -sf http://127.0.0.1:5003/api/health

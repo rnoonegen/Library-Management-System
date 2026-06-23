@@ -83,12 +83,16 @@ docker compose -f docker-compose.prod.yml restart backend
 
 In GitHub → Settings → Secrets and variables → Actions:
 
-| Secret             | Value                    |
-| ------------------ | ------------------------ |
-| `DROPLET_HOST`     | Droplet IP or domain     |
-| `DROPLET_USER`     | `deploy`                 |
-| `DROPLET_SSH_KEY`  | Private SSH key (PEM)    |
-| `DROPLET_APP_PATH` | `/opt/library`           |
+| Secret               | Value                                      |
+| -------------------- | ------------------------------------------ |
+| `DO_HOST`            | Droplet IP (`139.59.6.209`) or domain      |
+| `DO_USER`            | `root` (or deploy user with Docker access) |
+| `DO_SSH_KEY`         | Private SSH key (PEM, full key with headers) |
+| `JWT_SECRET`         | Long random secret (min 32 chars)          |
+| `DATABASE_URL`       | Aiven PostgreSQL connection string         |
+| `SEED_ADMIN_PASSWORD`| Optional — first deploy admin password     |
+
+Secrets are **per repository**. Copy the same values from Valmiki Ashram if that deploy already works.
 
 Push to `main` to trigger automated deploy.
 

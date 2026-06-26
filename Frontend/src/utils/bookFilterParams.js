@@ -1,4 +1,10 @@
-import { BOOK_LANGUAGES, BOOK_SUBJECTS, mergeCatalogOptions } from 'constants/bookCatalog';
+import {
+  BOOK_LANGUAGES,
+  BOOK_SUBJECTS,
+  BOOK_TYPES,
+  DEFAULT_BOOK_TYPE,
+  mergeCatalogOptions,
+} from 'constants/bookCatalog';
 
 export function getMergedFilterOptions(filterOptions = {}) {
   return {
@@ -20,6 +26,7 @@ export function buildBookListParams({
   selectedSubjects = [],
   selectedLanguages = [],
   filterOptions = {},
+  bookType = DEFAULT_BOOK_TYPE,
 }) {
   const { subjects: subjectOptions, languages: languageOptions } = getMergedFilterOptions(filterOptions);
   const subjects = normalizeFilterSelection(selectedSubjects, subjectOptions);
@@ -30,6 +37,9 @@ export function buildBookListParams({
   if (trimmed) params.search = trimmed;
   if (subjects.length) params.subject = subjects.join(',');
   if (languages.length) params.language = languages.join(',');
+  if (bookType === BOOK_TYPES.borrow || bookType === BOOK_TYPES.reference) {
+    params.book_type = bookType;
+  }
   return params;
 }
 

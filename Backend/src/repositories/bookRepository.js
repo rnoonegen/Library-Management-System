@@ -5,7 +5,7 @@ const {
   mergeCatalogOptions,
 } = require('../constants/bookCatalog');
 
-const BOOK_COLUMNS = `isbn, title, publisher, author, qty, price, subject, language, abstract, date_of_publication, grade_level`;
+const BOOK_COLUMNS = `isbn, title, publisher, author, qty, price, subject, language, abstract, date_of_publication, grade_level, book_type`;
 
 function parseFilterList(value) {
   if (!value) return [];
@@ -20,7 +20,7 @@ function parseFilterList(value) {
   ];
 }
 
-function buildListFilters({ search = '', subject = '', language = '' } = {}) {
+function buildListFilters({ search = '', subject = '', language = '', book_type = '' } = {}) {
   const conditions = [];
   const params = [];
   let paramIndex = 1;
@@ -46,6 +46,13 @@ function buildListFilters({ search = '', subject = '', language = '' } = {}) {
     conditions.push(`LOWER(language) IN (${placeholders.join(', ')})`);
     params.push(...languageFilters.map((item) => item.toLowerCase()));
     paramIndex += languageFilters.length;
+  }
+
+  const bookType = String(book_type || '').trim().toLowerCase();
+  if (bookType === 'borrow' || bookType === 'reference') {
+    conditions.push(`book_type = $${paramIndex}`);
+    params.push(bookType);
+    paramIndex += 1;
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -113,7 +120,7 @@ async function findById(id, client) {
 
 async function create(data) {
   const { rows } = await getPool().query(
-    `INSERT INTO books (${BOOK_COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+    `INSERT INTO books (${BOOK_COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
     [
       data.isbn,
       data.title,
@@ -126,6 +133,7 @@ async function create(data) {
       data.abstract,
       data.date_of_publication,
       data.grade_level,
+      data.book_type,
     ],
   );
   return rows[0].id;
@@ -134,7 +142,7 @@ async function create(data) {
 async function update(id, data) {
   await getPool().query(
     `UPDATE books SET isbn=$1, title=$2, publisher=$3, author=$4, qty=$5, price=$6,
-     subject=$7, language=$8, abstract=$9, date_of_publication=$10, grade_level=$11 WHERE id=$12`,
+     subject=$7, language=$8, abstract=$9, date_of_publication=$10, grade_level=$11, book_type=$12 WHERE id=$13`,
     [
       data.isbn,
       data.title,
@@ -147,6 +155,7 @@ async function update(id, data) {
       data.abstract,
       data.date_of_publication,
       data.grade_level,
+      data.book_type,
       id,
     ],
   );
@@ -177,7 +186,7 @@ async function incrementQty(id, client) {
 async function findAvailable() {
   const { rows } = await getPool().query(
     `SELECT id, isbn, title, author, qty
-     FROM books WHERE qty > 0
+     FROM books WHERE qty > 0 AND book_type = 'borrow'
      ORDER BY title`,
   );
   return rows;

@@ -936,6 +936,16 @@ video {
 .transactions-page {
   padding-bottom: 0;
 }
+.books-type-tabs {
+  margin-bottom: 1rem;
+}
+.book-card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
 .books-toolbar,
 .users-toolbar,
 .transactions-toolbar {
@@ -2406,6 +2416,7 @@ video {
   gap: 0.75rem;
 }
 .book-status-available { color: #198754; font-weight: 500; }
+.book-status-reference { color: #0d6efd; font-weight: 500; }
 .book-status-owned { color: #dc2626; font-weight: 600; }
 .book-status-limit { color: #dc2626; font-weight: 600; font-size: 0.875rem; }
 .book-status-muted { color: var(--text-muted); font-size: 0.875rem; }

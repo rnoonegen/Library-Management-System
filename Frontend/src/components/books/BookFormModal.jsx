@@ -1,5 +1,5 @@
 import Modal from 'components/common/Modal';
-import { BOOK_LANGUAGES, BOOK_SUBJECTS } from 'constants/bookCatalog';
+import { BOOK_LANGUAGES, BOOK_SUBJECTS, BOOK_TYPE_LABELS, BOOK_TYPES } from 'constants/bookCatalog';
 
 export default function BookFormModal({
   isOpen,
@@ -60,6 +60,23 @@ export default function BookFormModal({
         </div>
         <div className="form-row">
           <div className="form-group">
+            <label>Book Type *</label>
+            <select
+              value={form.book_type}
+              onChange={(e) => setForm({ ...form, book_type: e.target.value })}
+              required
+            >
+              <option value={BOOK_TYPES.borrow}>{BOOK_TYPE_LABELS.borrow} — can be taken home</option>
+              <option value={BOOK_TYPES.reference}>{BOOK_TYPE_LABELS.reference} — in-library reading only</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Grade Level</label>
+            <input value={form.grade_level} onChange={(e) => setForm({ ...form, grade_level: e.target.value })} />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
             <label>Price (INR)</label>
             <input
               type="number"
@@ -68,10 +85,6 @@ export default function BookFormModal({
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
             />
-          </div>
-          <div className="form-group">
-            <label>Grade Level</label>
-            <input value={form.grade_level} onChange={(e) => setForm({ ...form, grade_level: e.target.value })} />
           </div>
         </div>
         <div className="form-row">

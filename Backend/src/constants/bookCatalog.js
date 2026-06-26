@@ -24,8 +24,14 @@ function mergeCatalogOptions(predefined, fromDatabase = []) {
   );
 }
 
+const BOOK_TYPES = ["borrow", "reference"];
+
+const DEFAULT_BOOK_TYPE = "borrow";
+
 module.exports = {
   BOOK_LANGUAGES,
   BOOK_SUBJECTS,
+  BOOK_TYPES,
+  DEFAULT_BOOK_TYPE,
   mergeCatalogOptions,
 };

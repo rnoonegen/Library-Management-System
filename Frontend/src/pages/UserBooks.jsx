@@ -3,7 +3,7 @@ import { api } from 'services/api';
 import UserBooksContent from 'components/users/UserBooksContent';
 import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
-import { BOOK_LANGUAGES, BOOK_SUBJECTS } from 'constants/bookCatalog';
+import { BOOK_LANGUAGES, BOOK_SUBJECTS, DEFAULT_BOOK_TYPE } from 'constants/bookCatalog';
 import { buildBookListParams } from 'utils/bookFilterParams';
 
 function parseBorrowsForBooks(data) {
@@ -30,6 +30,7 @@ export default function UserBooks() {
   const [search, setSearch] = useState('');
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedLanguages, setSelectedLanguages] = useState([]);
+  const [bookType, setBookType] = useState(DEFAULT_BOOK_TYPE);
   const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -63,6 +64,7 @@ export default function UserBooks() {
     searchTerm = search,
     subjectFilters = selectedSubjects,
     languageFilters = selectedLanguages,
+    typeFilter = bookType,
   ) => {
     setLoading(true);
     const params = buildBookListParams({
@@ -72,6 +74,7 @@ export default function UserBooks() {
       selectedSubjects: subjectFilters,
       selectedLanguages: languageFilters,
       filterOptions,
+      bookType: typeFilter,
     });
 
     Promise.all([api.getBooks(params), loadUserContext()])
@@ -83,7 +86,7 @@ export default function UserBooks() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search, selectedSubjects, selectedLanguages, filterOptions]);
+  }, [page, search, selectedSubjects, selectedLanguages, bookType, filterOptions]);
 
   useEffect(() => {
     api.getBookFilters()
@@ -95,8 +98,8 @@ export default function UserBooks() {
   }, []);
 
   useEffect(() => {
-    loadBooks(page, search, selectedSubjects, selectedLanguages);
-  }, [page, search, selectedSubjects, selectedLanguages, loadBooks]);
+    loadBooks(page, search, selectedSubjects, selectedLanguages, bookType);
+  }, [page, search, selectedSubjects, selectedLanguages, bookType, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
@@ -120,6 +123,11 @@ export default function UserBooks() {
     setPage(1);
   };
 
+  const handleBookTypeChange = (type) => {
+    setBookType(type);
+    setPage(1);
+  };
+
   async function handleRequest(bookId, bookTitle) {
     setError('');
     const confirmed = await askConfirm({
@@ -135,7 +143,7 @@ export default function UserBooks() {
     setRequestingId(bookId);
     try {
       await api.submitBorrowRequest(bookId);
-      loadBooks(page, search, selectedSubjects, selectedLanguages);
+      loadBooks(page, search, selectedSubjects, selectedLanguages, bookType);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -156,6 +164,7 @@ export default function UserBooks() {
         selectedSubjects={selectedSubjects}
         selectedLanguages={selectedLanguages}
         filterOptions={filterOptions}
+        bookType={bookType}
         loading={loading}
         total={total}
         start={start}
@@ -173,6 +182,7 @@ export default function UserBooks() {
         onSubjectsChange={handleSubjectsChange}
         onLanguagesChange={handleLanguagesChange}
         onClearFilters={handleClearFilters}
+        onBookTypeChange={handleBookTypeChange}
         onPageChange={setPage}
         onRequest={handleRequest}
       />

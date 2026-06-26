@@ -39,6 +39,9 @@ async function submitBorrowRequest(userId, bookId) {
 
   const book = await bookRepository.findById(bookId);
   if (!book) throw new AppError("Book not found", 404);
+  if (book.book_type === "reference") {
+    throw new AppError("Reference books cannot be borrowed — for in-library reading only", 400);
+  }
   if (book.qty > 0) {
     throw new AppError("Book is available — visit the library to borrow it", 400);
   }

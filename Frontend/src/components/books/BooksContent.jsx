@@ -1,18 +1,26 @@
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
 import BookFilters from 'components/books/BookFilters';
+import BookTypeTabs from 'components/books/BookTypeTabs';
+import { BOOK_TYPE_LABELS, BOOK_TYPES } from 'constants/bookCatalog';
 import { hasBookFilters } from 'utils/bookFilterParams';
 
 function BookCard({ book, onEdit, onDelete }) {
   const fmt = (val) => (val == null || val === '' ? '—' : val);
+  const isReference = book.book_type === BOOK_TYPES.reference;
 
   return (
     <article key={book.id} className="book-card">
       <div className="book-card-top">
         <h3 className="book-card-title">{book.title}</h3>
-        <span className={book.qty > 0 ? 'badge badge-success' : 'badge badge-danger'}>
-          {book.qty > 0 ? `${book.qty} in stock` : 'Out of stock'}
-        </span>
+        <div className="book-card-badges">
+          <span className={isReference ? 'badge badge-info' : 'badge badge-borrowed'}>
+            {BOOK_TYPE_LABELS[book.book_type] || BOOK_TYPE_LABELS.borrow}
+          </span>
+          <span className={book.qty > 0 ? 'badge badge-success' : 'badge badge-danger'}>
+            {book.qty > 0 ? `${book.qty} in stock` : 'Out of stock'}
+          </span>
+        </div>
       </div>
 
       {(book.subject || book.language) && (
@@ -72,6 +80,7 @@ export default function BooksContent({
   selectedSubjects,
   selectedLanguages,
   filterOptions,
+  bookType,
   total,
   start,
   end,
@@ -84,6 +93,7 @@ export default function BooksContent({
   onSubjectsChange,
   onLanguagesChange,
   onClearFilters,
+  onBookTypeChange,
   onEdit,
   onDelete,
   onPageChange,
@@ -96,6 +106,8 @@ export default function BooksContent({
 
   return (
     <>
+      <BookTypeTabs activeType={bookType} onChange={onBookTypeChange} />
+
       <div className="books-toolbar">
         <div className="books-toolbar-main">
           <SearchBar

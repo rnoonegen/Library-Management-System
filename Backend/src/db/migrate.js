@@ -196,6 +196,21 @@ async function runMigrations() {
     ON books (LOWER(language))
   `);
   await pool.query(`
+    ALTER TABLE books
+      ADD COLUMN IF NOT EXISTS book_type VARCHAR(20) NOT NULL DEFAULT 'borrow'
+  `);
+  await pool.query(`
+    ALTER TABLE books DROP CONSTRAINT IF EXISTS books_book_type_check
+  `);
+  await pool.query(`
+    ALTER TABLE books ADD CONSTRAINT books_book_type_check
+      CHECK (book_type IN ('borrow', 'reference'))
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_books_book_type
+    ON books (book_type)
+  `);
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_users_role_status
     ON users (role, status)
   `);

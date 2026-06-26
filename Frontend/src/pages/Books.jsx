@@ -5,7 +5,7 @@ import BooksContent from 'components/books/BooksContent';
 import BookFormModal from 'components/books/BookFormModal';
 import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
-import { BOOK_LANGUAGES, BOOK_SUBJECTS } from 'constants/bookCatalog';
+import { BOOK_LANGUAGES, BOOK_SUBJECTS, DEFAULT_BOOK_TYPE } from 'constants/bookCatalog';
 import { buildBookListParams } from 'utils/bookFilterParams';
 
 function openDatePicker(e) {
@@ -44,6 +44,7 @@ const emptyBook = {
   abstract: '',
   date_of_publication: '',
   grade_level: '',
+  book_type: DEFAULT_BOOK_TYPE,
 };
 
 const emptyFilterOptions = { subjects: BOOK_SUBJECTS, languages: BOOK_LANGUAGES };
@@ -54,6 +55,7 @@ export default function Books() {
   const [search, setSearch] = useState('');
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedLanguages, setSelectedLanguages] = useState([]);
+  const [bookType, setBookType] = useState(DEFAULT_BOOK_TYPE);
   const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -69,6 +71,7 @@ export default function Books() {
     searchTerm = search,
     subjectFilters = selectedSubjects,
     languageFilters = selectedLanguages,
+    typeFilter = bookType,
   ) => {
     setLoading(true);
     const params = buildBookListParams({
@@ -78,6 +81,7 @@ export default function Books() {
       selectedSubjects: subjectFilters,
       selectedLanguages: languageFilters,
       filterOptions,
+      bookType: typeFilter,
     });
 
     return api
@@ -90,7 +94,7 @@ export default function Books() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search, selectedSubjects, selectedLanguages, filterOptions]);
+  }, [page, search, selectedSubjects, selectedLanguages, bookType, filterOptions]);
 
   useEffect(() => {
     api.getBookFilters()
@@ -102,8 +106,8 @@ export default function Books() {
   }, []);
 
   useEffect(() => {
-    loadBooks(page, search, selectedSubjects, selectedLanguages);
-  }, [page, search, selectedSubjects, selectedLanguages, loadBooks]);
+    loadBooks(page, search, selectedSubjects, selectedLanguages, bookType);
+  }, [page, search, selectedSubjects, selectedLanguages, bookType, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
@@ -127,8 +131,13 @@ export default function Books() {
     setPage(1);
   };
 
+  const handleBookTypeChange = (type) => {
+    setBookType(type);
+    setPage(1);
+  };
+
   const openCreate = () => {
-    setForm(emptyBook);
+    setForm({ ...emptyBook, book_type: bookType });
     setEditingId(null);
     modal.open();
   };
@@ -148,6 +157,7 @@ export default function Books() {
         ? String(book.date_of_publication).slice(0, 10)
         : '',
       grade_level: book.grade_level || '',
+      book_type: book.book_type || DEFAULT_BOOK_TYPE,
     });
     setEditingId(book.id);
     modal.open();
@@ -173,6 +183,7 @@ export default function Books() {
         abstract: form.abstract || null,
         date_of_publication: publicationDate,
         grade_level: form.grade_level || null,
+        book_type: form.book_type || DEFAULT_BOOK_TYPE,
       };
       if (editingId) {
         await api.updateBook(editingId, payload);
@@ -226,6 +237,7 @@ export default function Books() {
         selectedSubjects={selectedSubjects}
         selectedLanguages={selectedLanguages}
         filterOptions={filterOptions}
+        bookType={bookType}
         total={total}
         start={start}
         end={end}
@@ -238,6 +250,7 @@ export default function Books() {
         onSubjectsChange={handleSubjectsChange}
         onLanguagesChange={handleLanguagesChange}
         onClearFilters={handleClearFilters}
+        onBookTypeChange={handleBookTypeChange}
         onEdit={openEdit}
         onDelete={handleDelete}
         onPageChange={setPage}

@@ -1,4 +1,5 @@
 const bookRepository = require('../repositories/bookRepository');
+const { DEFAULT_BOOK_TYPE } = require('../constants/bookCatalog');
 const { AppError } = require('../middleware');
 
 function parsePrice(price) {
@@ -19,6 +20,7 @@ function normalizeBookInput(data) {
     abstract: data.abstract || null,
     date_of_publication: data.date_of_publication || null,
     grade_level: data.grade_level || null,
+    book_type: data.book_type || DEFAULT_BOOK_TYPE,
   };
 }
 
@@ -27,6 +29,7 @@ function parseListFilters(query = {}) {
     search: query.search || '',
     subject: query.subject || '',
     language: query.language || '',
+    book_type: query.book_type || '',
   };
 }
 
@@ -87,6 +90,7 @@ async function updateBook(id, data) {
         ? data.date_of_publication || null
         : existing.date_of_publication,
     grade_level: data.grade_level !== undefined ? data.grade_level || null : existing.grade_level,
+    book_type: data.book_type !== undefined ? data.book_type || DEFAULT_BOOK_TYPE : existing.book_type,
   };
 
   await bookRepository.update(id, merged);

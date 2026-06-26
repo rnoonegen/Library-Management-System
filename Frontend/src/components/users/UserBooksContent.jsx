@@ -2,6 +2,8 @@ import Button from 'components/common/Button';
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
 import BookFilters from 'components/books/BookFilters';
+import BookTypeTabs from 'components/books/BookTypeTabs';
+import { BOOK_TYPES } from 'constants/bookCatalog';
 import { hasBookFilters } from 'utils/bookFilterParams';
 
 function waitlistLabel(hold) {
@@ -18,15 +20,18 @@ function UserBookCard({
   requestingId,
   onRequest,
 }) {
+  const isReference = book.book_type === BOOK_TYPES.reference;
   const available = book.qty > 0;
-  const canJoin = !available && !alreadyBorrowed && !activeHold && !atBorrowLimit;
+  const canJoin = !isReference && !available && !alreadyBorrowed && !activeHold && !atBorrowLimit;
 
   return (
     <article className="book-card user-book-card">
       <div className="book-card-top">
         <h3 className="book-card-title">{book.title}</h3>
         <span className={available ? 'badge badge-success' : 'badge badge-danger'}>
-          {available ? `${book.qty} available` : 'Unavailable'}
+          {isReference
+            ? (available ? 'Available in library' : 'Not available')
+            : (available ? `${book.qty} available` : 'Unavailable')}
         </span>
       </div>
 
@@ -57,7 +62,11 @@ function UserBookCard({
       </dl>
 
       <div className="book-card-actions user-book-card-actions">
-        {alreadyBorrowed ? (
+        {isReference ? (
+          <p className="book-status-reference" style={{ margin: 0, fontSize: '0.875rem' }}>
+            Reference book — read in the library only. Cannot be borrowed or taken home.
+          </p>
+        ) : alreadyBorrowed ? (
           <>
             <p className="book-status-owned" style={{ margin: 0 }}>You have this book</p>
             <p className="book-status-owned" style={{ margin: 0, fontSize: '0.875rem' }}>
@@ -96,6 +105,7 @@ export default function UserBooksContent({
   selectedSubjects,
   selectedLanguages,
   filterOptions,
+  bookType,
   loading,
   total,
   start,
@@ -113,6 +123,7 @@ export default function UserBooksContent({
   onSubjectsChange,
   onLanguagesChange,
   onClearFilters,
+  onBookTypeChange,
   onPageChange,
   onRequest,
 }) {
@@ -124,6 +135,8 @@ export default function UserBooksContent({
 
   return (
     <>
+      <BookTypeTabs activeType={bookType} onChange={onBookTypeChange} />
+
       <div className="books-toolbar">
         <div className="books-toolbar-main">
           <SearchBar

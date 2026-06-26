@@ -71,6 +71,7 @@ export default function UserBooks() {
       search: searchTerm,
       selectedSubjects: subjectFilters,
       selectedLanguages: languageFilters,
+      filterOptions,
     });
 
     Promise.all([api.getBooks(params), loadUserContext()])
@@ -82,7 +83,7 @@ export default function UserBooks() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search, selectedSubjects, selectedLanguages]);
+  }, [page, search, selectedSubjects, selectedLanguages, filterOptions]);
 
   useEffect(() => {
     api.getBookFilters()

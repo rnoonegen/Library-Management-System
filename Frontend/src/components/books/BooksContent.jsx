@@ -88,7 +88,7 @@ export default function BooksContent({
   onDelete,
   onPageChange,
 }) {
-  const hasActiveFilters = hasBookFilters(search, selectedSubjects, selectedLanguages);
+  const hasActiveFilters = hasBookFilters(search, selectedSubjects, selectedLanguages, filterOptions);
   const emptyMessage = hasActiveFilters ? 'No books found' : 'No books yet';
   const emptyHint = hasActiveFilters
     ? 'Try a different search term or clear the filters.'

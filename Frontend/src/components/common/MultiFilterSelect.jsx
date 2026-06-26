@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { isAllFilterSelection } from 'utils/bookFilterParams';
 
-function formatSelection(values, placeholder) {
-  if (!values.length) return placeholder;
-  if (values.length === 1) return '1 selected';
+function formatSelection(values, options, placeholder) {
+  if (!values.length || isAllFilterSelection(values, options)) return placeholder;
+  if (values.length === 1) return values[0];
   return `${values.length} selected`;
 }
 
@@ -31,6 +32,7 @@ export default function MultiFilterSelect({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const allSelected = isAllFilterSelection(values, options);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -63,11 +65,16 @@ export default function MultiFilterSelect({
     onChange([...values, option]);
   }
 
+  function selectAll() {
+    onChange([...options]);
+  }
+
   function clearAll() {
     onChange([]);
   }
 
-  const displayValue = formatSelection(values, placeholder);
+  const displayValue = formatSelection(values, options, placeholder);
+  const showChips = values.length > 0 && !allSelected;
 
   return (
     <div className="books-filter filter-select" ref={rootRef}>
@@ -84,7 +91,7 @@ export default function MultiFilterSelect({
         <span className="filter-select-chevron" aria-hidden="true" />
       </button>
 
-      {values.length > 0 && (
+      {showChips && (
         <div className="books-filter-chips-row" aria-label={`Selected ${label.toLowerCase()} filters`}>
           <span className="books-filter-chips-heading">{label}</span>
           <div className="books-filter-chips-list">
@@ -103,10 +110,23 @@ export default function MultiFilterSelect({
       {open && (
         <div className="filter-select-menu filter-multi-menu" role="listbox" aria-label={ariaLabel}>
           <div className="filter-multi-actions">
-            <button type="button" className="filter-multi-action" onClick={clearAll}>
-              Clear
+            <button
+              type="button"
+              className={`filter-multi-action${allSelected ? ' is-active' : ''}`}
+              onClick={selectAll}
+              disabled={!options.length || allSelected}
+            >
+              Select all
             </button>
-            <button type="button" className="filter-multi-action" onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              className={`filter-multi-action${!values.length ? ' is-active' : ''}`}
+              onClick={clearAll}
+              disabled={!values.length}
+            >
+              Deselect all
+            </button>
+            <button type="button" className="filter-multi-action filter-multi-action-done" onClick={() => setOpen(false)}>
               Done
             </button>
           </div>

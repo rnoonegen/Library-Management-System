@@ -77,6 +77,7 @@ export default function Books() {
       search: searchTerm,
       selectedSubjects: subjectFilters,
       selectedLanguages: languageFilters,
+      filterOptions,
     });
 
     return api
@@ -89,7 +90,7 @@ export default function Books() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search, selectedSubjects, selectedLanguages]);
+  }, [page, search, selectedSubjects, selectedLanguages, filterOptions]);
 
   useEffect(() => {
     api.getBookFilters()

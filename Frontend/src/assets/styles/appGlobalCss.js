@@ -1140,10 +1140,14 @@ video {
 }
 .filter-multi-actions {
   display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem 0.5rem;
   padding: 0.45rem 0.5rem;
   border-bottom: 1px solid var(--border);
+}
+.filter-multi-action-done {
+  margin-left: auto;
 }
 .filter-multi-action {
   border: none;
@@ -1153,6 +1157,18 @@ video {
   font-weight: 600;
   cursor: pointer;
   padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+}
+.filter-multi-action:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.filter-multi-action.is-active {
+  background: var(--accent-soft);
+  color: var(--primary);
+}
+.filter-multi-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .filter-multi-list {
   margin: 0;

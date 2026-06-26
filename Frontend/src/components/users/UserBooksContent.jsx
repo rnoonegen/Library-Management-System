@@ -116,7 +116,7 @@ export default function UserBooksContent({
   onPageChange,
   onRequest,
 }) {
-  const hasActiveFilters = hasBookFilters(search, selectedSubjects, selectedLanguages);
+  const hasActiveFilters = hasBookFilters(search, selectedSubjects, selectedLanguages, filterOptions);
   const emptyMessage = hasActiveFilters ? 'No books found' : 'No books available';
   const emptyHint = hasActiveFilters
     ? 'Try a different search term or clear the filters.'

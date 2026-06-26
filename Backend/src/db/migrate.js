@@ -184,6 +184,18 @@ async function runMigrations() {
     ON books (LOWER(title))
   `);
   await pool.query(`
+    ALTER TABLE books
+      ADD COLUMN IF NOT EXISTS language VARCHAR(50)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_books_subject_lower
+    ON books (LOWER(subject))
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_books_language_lower
+    ON books (LOWER(language))
+  `);
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_users_role_status
     ON users (role, status)
   `);

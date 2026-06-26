@@ -28,9 +28,15 @@ async function listAvailableBooks(req, res) {
   res.json(books);
 }
 
+async function listBookFilters(req, res) {
+  const filters = await bookService.listBookFilters();
+  res.json(filters);
+}
+
 module.exports = {
   listBooks,
   listAvailableBooks,
+  listBookFilters,
   createBook,
   updateBook,
   deleteBook,

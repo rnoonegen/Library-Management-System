@@ -5,6 +5,8 @@ import BooksContent from 'components/books/BooksContent';
 import BookFormModal from 'components/books/BookFormModal';
 import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
+import { BOOK_LANGUAGES, BOOK_SUBJECTS } from 'constants/bookCatalog';
+import { buildBookListParams } from 'utils/bookFilterParams';
 
 function openDatePicker(e) {
   try {
@@ -38,15 +40,21 @@ const emptyBook = {
   qty: 1,
   price: '',
   subject: '',
+  language: '',
   abstract: '',
   date_of_publication: '',
   grade_level: '',
 };
 
+const emptyFilterOptions = { subjects: BOOK_SUBJECTS, languages: BOOK_LANGUAGES };
+
 export default function Books() {
   const [books, setBooks] = useState([]);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
+  const [selectedLanguages, setSelectedLanguages] = useState([]);
+  const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [form, setForm] = useState(emptyBook);
@@ -56,11 +64,20 @@ export default function Books() {
   const modal = useModal();
   const { askConfirm, ActionDialog } = useActionDialog();
 
-  const loadBooks = useCallback((pageNum = page, searchTerm = search) => {
+  const loadBooks = useCallback((
+    pageNum = page,
+    searchTerm = search,
+    subjectFilters = selectedSubjects,
+    languageFilters = selectedLanguages,
+  ) => {
     setLoading(true);
-    const params = { page: pageNum, limit: PAGE_SIZE };
-    const trimmed = searchTerm.trim();
-    if (trimmed) params.search = trimmed;
+    const params = buildBookListParams({
+      page: pageNum,
+      limit: PAGE_SIZE,
+      search: searchTerm,
+      selectedSubjects: subjectFilters,
+      selectedLanguages: languageFilters,
+    });
 
     return api
       .getBooks(params)
@@ -72,14 +89,40 @@ export default function Books() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search]);
+  }, [page, search, selectedSubjects, selectedLanguages]);
 
   useEffect(() => {
-    loadBooks(page, search);
-  }, [page, search, loadBooks]);
+    api.getBookFilters()
+      .then((options) => setFilterOptions({
+        subjects: options.subjects ?? [],
+        languages: options.languages ?? [],
+      }))
+      .catch(() => setFilterOptions(emptyFilterOptions));
+  }, []);
+
+  useEffect(() => {
+    loadBooks(page, search, selectedSubjects, selectedLanguages);
+  }, [page, search, selectedSubjects, selectedLanguages, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
+    setPage(1);
+  };
+
+  const handleSubjectsChange = (values) => {
+    setSelectedSubjects(values);
+    setPage(1);
+  };
+
+  const handleLanguagesChange = (values) => {
+    setSelectedLanguages(values);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setSelectedSubjects([]);
+    setSelectedLanguages([]);
     setPage(1);
   };
 
@@ -98,6 +141,7 @@ export default function Books() {
       qty: book.qty,
       price: book.price ?? '',
       subject: book.subject || '',
+      language: book.language || '',
       abstract: book.abstract || '',
       date_of_publication: book.date_of_publication
         ? String(book.date_of_publication).slice(0, 10)
@@ -124,6 +168,7 @@ export default function Books() {
         qty,
         price: form.price === '' ? null : form.price,
         subject: form.subject || null,
+        language: form.language || null,
         abstract: form.abstract || null,
         date_of_publication: publicationDate,
         grade_level: form.grade_level || null,
@@ -134,6 +179,12 @@ export default function Books() {
         await api.createBook(payload);
       }
       modal.close();
+      api.getBookFilters()
+        .then((options) => setFilterOptions({
+          subjects: options.subjects ?? [],
+          languages: options.languages ?? [],
+        }))
+        .catch(() => {});
       if (editingId) loadBooks(page);
       else setPage(1);
     } catch (err) {
@@ -171,6 +222,9 @@ export default function Books() {
         books={books}
         loading={loading}
         search={search}
+        selectedSubjects={selectedSubjects}
+        selectedLanguages={selectedLanguages}
+        filterOptions={filterOptions}
         total={total}
         start={start}
         end={end}
@@ -180,6 +234,9 @@ export default function Books() {
         endPage={endPage}
         pageNumbers={pageNumbers}
         onSearchChange={handleSearchChange}
+        onSubjectsChange={handleSubjectsChange}
+        onLanguagesChange={handleLanguagesChange}
+        onClearFilters={handleClearFilters}
         onEdit={openEdit}
         onDelete={handleDelete}
         onPageChange={setPage}

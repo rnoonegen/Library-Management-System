@@ -1,5 +1,7 @@
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
+import BookFilters from 'components/books/BookFilters';
+import { hasBookFilters } from 'utils/bookFilterParams';
 
 function BookCard({ book, onEdit, onDelete }) {
   const fmt = (val) => (val == null || val === '' ? '—' : val);
@@ -12,6 +14,13 @@ function BookCard({ book, onEdit, onDelete }) {
           {book.qty > 0 ? `${book.qty} in stock` : 'Out of stock'}
         </span>
       </div>
+
+      {(book.subject || book.language) && (
+        <div className="book-card-tags">
+          {book.subject && <span className="book-tag">{book.subject}</span>}
+          {book.language && <span className="book-tag book-tag-language">{book.language}</span>}
+        </div>
+      )}
 
       <dl className="book-card-details">
         <div className="book-detail">
@@ -35,6 +44,10 @@ function BookCard({ book, onEdit, onDelete }) {
           <dd>{fmt(book.subject)}</dd>
         </div>
         <div className="book-detail">
+          <dt>Language</dt>
+          <dd>{fmt(book.language)}</dd>
+        </div>
+        <div className="book-detail">
           <dt>Grade</dt>
           <dd>{fmt(book.grade_level)}</dd>
         </div>
@@ -56,6 +69,9 @@ export default function BooksContent({
   books,
   loading,
   search,
+  selectedSubjects,
+  selectedLanguages,
+  filterOptions,
   total,
   start,
   end,
@@ -65,24 +81,46 @@ export default function BooksContent({
   endPage,
   pageNumbers,
   onSearchChange,
+  onSubjectsChange,
+  onLanguagesChange,
+  onClearFilters,
   onEdit,
   onDelete,
   onPageChange,
 }) {
+  const hasActiveFilters = hasBookFilters(search, selectedSubjects, selectedLanguages);
+  const emptyMessage = hasActiveFilters ? 'No books found' : 'No books yet';
+  const emptyHint = hasActiveFilters
+    ? 'Try a different search term or clear the filters.'
+    : 'Add your first book to get started.';
+
   return (
     <>
       <div className="books-toolbar">
-        <SearchBar
-          className="books-search"
-          value={search}
-          onChange={onSearchChange}
-          placeholder="Search books by title..."
+        <div className="books-toolbar-main">
+          <SearchBar
+            className="books-search"
+            value={search}
+            onChange={onSearchChange}
+            placeholder="Search books by title..."
+          />
+          {!loading && total > 0 && (
+            <span className="books-summary">
+              Showing {start}–{end} of {total} books
+            </span>
+          )}
+        </div>
+
+        <BookFilters
+          subjects={filterOptions.subjects}
+          languages={filterOptions.languages}
+          selectedSubjects={selectedSubjects}
+          selectedLanguages={selectedLanguages}
+          onSubjectsChange={onSubjectsChange}
+          onLanguagesChange={onLanguagesChange}
+          onClear={onClearFilters}
+          hasActiveFilters={hasActiveFilters}
         />
-        {!loading && total > 0 && (
-          <span className="books-summary">
-            Showing {start}–{end} of {total} books
-          </span>
-        )}
       </div>
 
       {loading ? (
@@ -92,12 +130,8 @@ export default function BooksContent({
           <div className="empty-state-icon" aria-hidden="true">
             📚
           </div>
-          <strong>{search.trim() ? 'No books found' : 'No books yet'}</strong>
-          <p>
-            {search.trim()
-              ? 'Try a different search term or clear the filter.'
-              : 'Add your first book to get started.'}
-          </p>
+          <strong>{emptyMessage}</strong>
+          <p>{emptyHint}</p>
         </div>
       ) : (
         <>
@@ -119,4 +153,3 @@ export default function BooksContent({
     </>
   );
 }
-

@@ -103,6 +103,8 @@ export const api = {
     return request(`/books${query}`);
   },
 
+  getBookFilters: () => request("/books/filters"),
+
   getAvailableBooks: () => request("/books/available"),
 
   createBook: (book) =>

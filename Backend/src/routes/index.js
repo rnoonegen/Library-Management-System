@@ -20,7 +20,7 @@ const {
   reviewBorrowRequestSchema,
   reviewExtensionRequestSchema,
 } = require("../schemas/requestSchemas");
-const { createBookSchema, updateBookSchema } = require("../schemas/bookSchemas");
+const { createBookSchema, updateBookSchema, bookQuerySchema } = require("../schemas/bookSchemas");
 const {
   borrowBookSchema,
   updateTransactionSchema,
@@ -194,9 +194,14 @@ router.get(
   asyncHandler(bookController.listAvailableBooks),
 );
 router.get(
+  "/books/filters",
+  ...anyUser,
+  asyncHandler(bookController.listBookFilters),
+);
+router.get(
   "/books",
   ...anyUser,
-  validate(paginationQuerySchema),
+  validate(bookQuerySchema),
   asyncHandler(bookController.listBooks),
 );
 router.post(

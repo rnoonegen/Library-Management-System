@@ -1,4 +1,5 @@
 import Modal from 'components/common/Modal';
+import { BOOK_LANGUAGES, BOOK_SUBJECTS } from 'constants/bookCatalog';
 
 export default function BookFormModal({
   isOpen,
@@ -73,9 +74,41 @@ export default function BookFormModal({
             <input value={form.grade_level} onChange={(e) => setForm({ ...form, grade_level: e.target.value })} />
           </div>
         </div>
-        <div className="form-group">
-          <label>Subject</label>
-          <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+        <div className="form-row">
+          <div className="form-group">
+            <label>Subject</label>
+            <select
+              value={form.subject}
+              onChange={(e) => setForm({ ...form, subject: e.target.value })}
+            >
+              <option value="">Select subject</option>
+              {form.subject && !BOOK_SUBJECTS.includes(form.subject) && (
+                <option value={form.subject}>{form.subject}</option>
+              )}
+              {BOOK_SUBJECTS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Language</label>
+            <select
+              value={form.language}
+              onChange={(e) => setForm({ ...form, language: e.target.value })}
+            >
+              <option value="">Select language</option>
+              {form.language && !BOOK_LANGUAGES.includes(form.language) && (
+                <option value={form.language}>{form.language}</option>
+              )}
+              {BOOK_LANGUAGES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="form-group">
           <label>Abstract</label>
@@ -112,4 +145,3 @@ export default function BookFormModal({
     </Modal>
   );
 }
-

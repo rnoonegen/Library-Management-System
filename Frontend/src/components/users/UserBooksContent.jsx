@@ -1,6 +1,8 @@
 import Button from 'components/common/Button';
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
+import BookFilters from 'components/books/BookFilters';
+import { hasBookFilters } from 'utils/bookFilterParams';
 
 function waitlistLabel(hold) {
   if (hold.status === 'ready') return 'Ready — visit library';
@@ -28,6 +30,13 @@ function UserBookCard({
         </span>
       </div>
 
+      {(book.subject || book.language) && (
+        <div className="book-card-tags">
+          {book.subject && <span className="book-tag">{book.subject}</span>}
+          {book.language && <span className="book-tag book-tag-language">{book.language}</span>}
+        </div>
+      )}
+
       <dl className="book-card-details">
         <div className="book-detail">
           <dt>Author</dt>
@@ -36,6 +45,14 @@ function UserBookCard({
         <div className="book-detail">
           <dt>Publisher</dt>
           <dd>{book.publisher || '—'}</dd>
+        </div>
+        <div className="book-detail">
+          <dt>Subject</dt>
+          <dd>{book.subject || '—'}</dd>
+        </div>
+        <div className="book-detail">
+          <dt>Language</dt>
+          <dd>{book.language || '—'}</dd>
         </div>
       </dl>
 
@@ -76,6 +93,9 @@ function UserBookCard({
 export default function UserBooksContent({
   books,
   search,
+  selectedSubjects,
+  selectedLanguages,
+  filterOptions,
   loading,
   total,
   start,
@@ -90,23 +110,45 @@ export default function UserBooksContent({
   holdsByBookId,
   atBorrowLimit,
   onSearchChange,
+  onSubjectsChange,
+  onLanguagesChange,
+  onClearFilters,
   onPageChange,
   onRequest,
 }) {
+  const hasActiveFilters = hasBookFilters(search, selectedSubjects, selectedLanguages);
+  const emptyMessage = hasActiveFilters ? 'No books found' : 'No books available';
+  const emptyHint = hasActiveFilters
+    ? 'Try a different search term or clear the filters.'
+    : 'Check back later for new titles.';
+
   return (
     <>
       <div className="books-toolbar">
-        <SearchBar
-          className="books-search"
-          value={search}
-          onChange={onSearchChange}
-          placeholder="Search books by title..."
+        <div className="books-toolbar-main">
+          <SearchBar
+            className="books-search"
+            value={search}
+            onChange={onSearchChange}
+            placeholder="Search books by title..."
+          />
+          {!loading && total > 0 && (
+            <span className="books-summary">
+              Showing {start}–{end} of {total} books
+            </span>
+          )}
+        </div>
+
+        <BookFilters
+          subjects={filterOptions.subjects}
+          languages={filterOptions.languages}
+          selectedSubjects={selectedSubjects}
+          selectedLanguages={selectedLanguages}
+          onSubjectsChange={onSubjectsChange}
+          onLanguagesChange={onLanguagesChange}
+          onClear={onClearFilters}
+          hasActiveFilters={hasActiveFilters}
         />
-        {!loading && total > 0 && (
-          <span className="books-summary">
-            Showing {start}–{end} of {total} books
-          </span>
-        )}
       </div>
 
       {loading ? (
@@ -114,12 +156,8 @@ export default function UserBooksContent({
       ) : books.length === 0 ? (
         <div className="books-empty">
           <div className="empty-state-icon" aria-hidden="true">📚</div>
-          <strong>{search.trim() ? 'No books found' : 'No books available'}</strong>
-          <p>
-            {search.trim()
-              ? 'Try a different search term or clear the filter.'
-              : 'Check back later for new titles.'}
-          </p>
+          <strong>{emptyMessage}</strong>
+          <p>{emptyHint}</p>
         </div>
       ) : (
         <>

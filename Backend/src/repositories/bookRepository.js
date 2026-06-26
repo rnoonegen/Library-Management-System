@@ -1,38 +1,108 @@
 const { getPool } = require('../config/connection');
+const {
+  BOOK_LANGUAGES,
+  BOOK_SUBJECTS,
+  mergeCatalogOptions,
+} = require('../constants/bookCatalog');
 
-const BOOK_COLUMNS = `isbn, title, publisher, author, qty, price, subject, abstract, date_of_publication, grade_level`;
+const BOOK_COLUMNS = `isbn, title, publisher, author, qty, price, subject, language, abstract, date_of_publication, grade_level`;
+
+function parseFilterList(value) {
+  if (!value) return [];
+  const items = Array.isArray(value) ? value : [value];
+  return [
+    ...new Set(
+      items
+        .flatMap((item) => String(item).split(','))
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function buildListFilters({ search = '', subject = '', language = '' } = {}) {
+  const conditions = [];
+  const params = [];
+  let paramIndex = 1;
+
+  const term = search.trim();
+  if (term.length > 0) {
+    conditions.push(`title ILIKE $${paramIndex}`);
+    params.push(`%${term}%`);
+    paramIndex += 1;
+  }
+
+  const subjectFilters = parseFilterList(subject);
+  if (subjectFilters.length > 0) {
+    const placeholders = subjectFilters.map((_, index) => `LOWER($${paramIndex + index})`);
+    conditions.push(`LOWER(subject) IN (${placeholders.join(', ')})`);
+    params.push(...subjectFilters.map((item) => item.toLowerCase()));
+    paramIndex += subjectFilters.length;
+  }
+
+  const languageFilters = parseFilterList(language);
+  if (languageFilters.length > 0) {
+    const placeholders = languageFilters.map((_, index) => `LOWER($${paramIndex + index})`);
+    conditions.push(`LOWER(language) IN (${placeholders.join(', ')})`);
+    params.push(...languageFilters.map((item) => item.toLowerCase()));
+    paramIndex += languageFilters.length;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  return { whereClause, params, paramIndex };
+}
 
 async function findAll() {
   const { rows } = await getPool().query('SELECT * FROM books ORDER BY title');
   return rows;
 }
 
-async function findPaginated(page, limit, search = '') {
+async function findPaginated(page, limit, filters = {}) {
   const offset = (page - 1) * limit;
-  const term = search.trim();
-  const hasSearch = term.length > 0;
-  const pattern = `%${term}%`;
+  const { whereClause, params, paramIndex } = buildListFilters(filters);
 
-  if (hasSearch) {
-    const { rows: countRows } = await getPool().query(
-      'SELECT COUNT(*)::int AS total FROM books WHERE title ILIKE $1',
-      [pattern]
-    );
-    const total = countRows[0].total;
-    const { rows } = await getPool().query(
-      'SELECT * FROM books WHERE title ILIKE $1 ORDER BY title LIMIT $2 OFFSET $3',
-      [pattern, limit, offset]
-    );
-    return { books: rows, total };
-  }
-
-  const { rows: countRows } = await getPool().query('SELECT COUNT(*)::int AS total FROM books');
-  const total = countRows[0].total;
-  const { rows } = await getPool().query(
-    'SELECT * FROM books ORDER BY title LIMIT $1 OFFSET $2',
-    [limit, offset]
+  const { rows: countRows } = await getPool().query(
+    `SELECT COUNT(*)::int AS total FROM books ${whereClause}`,
+    params,
   );
+  const total = countRows[0].total;
+
+  const { rows } = await getPool().query(
+    `SELECT * FROM books ${whereClause} ORDER BY title LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    [...params, limit, offset],
+  );
+
   return { books: rows, total };
+}
+
+async function findFilterOptions() {
+  const pool = getPool();
+  const [subjectsResult, languagesResult] = await Promise.all([
+    pool.query(`
+      SELECT DISTINCT subject
+      FROM books
+      WHERE subject IS NOT NULL AND TRIM(subject) <> ''
+      ORDER BY subject
+    `),
+    pool.query(`
+      SELECT DISTINCT language
+      FROM books
+      WHERE language IS NOT NULL AND TRIM(language) <> ''
+      ORDER BY language
+    `),
+  ]);
+
+  return {
+    subjects: mergeCatalogOptions(
+      BOOK_SUBJECTS,
+      subjectsResult.rows.map((row) => row.subject),
+    ),
+    languages: mergeCatalogOptions(
+      BOOK_LANGUAGES,
+      languagesResult.rows.map((row) => row.language),
+    ),
+  };
 }
 
 async function findById(id, client) {
@@ -43,7 +113,7 @@ async function findById(id, client) {
 
 async function create(data) {
   const { rows } = await getPool().query(
-    `INSERT INTO books (${BOOK_COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+    `INSERT INTO books (${BOOK_COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
     [
       data.isbn,
       data.title,
@@ -52,10 +122,11 @@ async function create(data) {
       data.qty,
       data.price,
       data.subject,
+      data.language,
       data.abstract,
       data.date_of_publication,
       data.grade_level,
-    ]
+    ],
   );
   return rows[0].id;
 }
@@ -63,7 +134,7 @@ async function create(data) {
 async function update(id, data) {
   await getPool().query(
     `UPDATE books SET isbn=$1, title=$2, publisher=$3, author=$4, qty=$5, price=$6,
-     subject=$7, abstract=$8, date_of_publication=$9, grade_level=$10 WHERE id=$11`,
+     subject=$7, language=$8, abstract=$9, date_of_publication=$10, grade_level=$11 WHERE id=$12`,
     [
       data.isbn,
       data.title,
@@ -72,11 +143,12 @@ async function update(id, data) {
       data.qty,
       data.price,
       data.subject,
+      data.language,
       data.abstract,
       data.date_of_publication,
       data.grade_level,
       id,
-    ]
+    ],
   );
 }
 
@@ -124,6 +196,7 @@ async function getInventoryStats() {
 module.exports = {
   findAll,
   findPaginated,
+  findFilterOptions,
   findAvailable,
   findById,
   create,

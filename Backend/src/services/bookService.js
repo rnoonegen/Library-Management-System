@@ -15,27 +15,40 @@ function normalizeBookInput(data) {
     qty: parseInt(data.qty, 10) || 1,
     price: parsePrice(data.price),
     subject: data.subject || null,
+    language: data.language || null,
     abstract: data.abstract || null,
     date_of_publication: data.date_of_publication || null,
     grade_level: data.grade_level || null,
   };
 }
 
+function parseListFilters(query = {}) {
+  return {
+    search: query.search || '',
+    subject: query.subject || '',
+    language: query.language || '',
+  };
+}
+
 async function listBooks(query = {}) {
   const pageNum = Math.max(1, parseInt(query.page, 10) || 1);
   const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
-  const search = query.search || "";
-  return getBooksPaginated(pageNum, limitNum, search);
+  const filters = parseListFilters(query);
+  return getBooksPaginated(pageNum, limitNum, filters);
+}
+
+async function listBookFilters() {
+  return bookRepository.findFilterOptions();
 }
 
 async function listAvailableBooks() {
   return bookRepository.findAvailable();
 }
 
-async function getBooksPaginated(page = 1, limit = 10, search = '') {
+async function getBooksPaginated(page = 1, limit = 10, filters = {}) {
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(100, Math.max(1, limit));
-  const { books, total } = await bookRepository.findPaginated(safePage, safeLimit, search);
+  const { books, total } = await bookRepository.findPaginated(safePage, safeLimit, filters);
 
   return {
     books,
@@ -67,6 +80,7 @@ async function updateBook(id, data) {
     qty: parseInt(data.qty ?? existing.qty, 10),
     price: data.price !== undefined ? parsePrice(data.price) : existing.price,
     subject: data.subject !== undefined ? data.subject || null : existing.subject,
+    language: data.language !== undefined ? data.language || null : existing.language,
     abstract: data.abstract !== undefined ? data.abstract || null : existing.abstract,
     date_of_publication:
       data.date_of_publication !== undefined
@@ -87,6 +101,7 @@ async function deleteBook(id) {
 
 module.exports = {
   listBooks,
+  listBookFilters,
   listAvailableBooks,
   createBook,
   updateBook,

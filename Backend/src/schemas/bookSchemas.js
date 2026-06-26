@@ -18,6 +18,7 @@ const bookBodySchema = z.object({
   qty: z.coerce.number().int().min(0).max(10000).optional().default(1),
   price: z.coerce.number().min(0).optional().nullable(),
   subject: z.string().max(255).optional().nullable(),
+  language: z.string().max(50).optional().nullable(),
   abstract: z.string().max(5000).optional().nullable(),
   date_of_publication: optionalPastDate,
   grade_level: z.string().max(50).optional().nullable(),
@@ -36,4 +37,14 @@ const updateBookSchema = z.object({
   body: bookBodySchema.partial(),
 });
 
-module.exports = { createBookSchema, updateBookSchema };
+const bookQuerySchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().positive().max(100).optional(),
+    search: z.string().optional(),
+    subject: z.union([z.string(), z.array(z.string())]).optional(),
+    language: z.union([z.string(), z.array(z.string())]).optional(),
+  }),
+});
+
+module.exports = { createBookSchema, updateBookSchema, bookQuerySchema };

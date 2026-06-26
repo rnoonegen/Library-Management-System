@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from 'services/api';
 import UserBooksContent from 'components/users/UserBooksContent';
 import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
+import { BOOK_LANGUAGES, BOOK_SUBJECTS } from 'constants/bookCatalog';
+import { buildBookListParams } from 'utils/bookFilterParams';
 
 function parseBorrowsForBooks(data) {
   if (Array.isArray(data)) {
@@ -18,12 +20,17 @@ function parseBorrowsForBooks(data) {
   };
 }
 
+const emptyFilterOptions = { subjects: BOOK_SUBJECTS, languages: BOOK_LANGUAGES };
+
 export default function UserBooks() {
   const [books, setBooks] = useState([]);
   const [borrowedBookIds, setBorrowedBookIds] = useState(new Set());
   const [holdsByBookId, setHoldsByBookId] = useState({});
   const [atBorrowLimit, setAtBorrowLimit] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
+  const [selectedLanguages, setSelectedLanguages] = useState([]);
+  const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -51,11 +58,20 @@ export default function UserBooks() {
       },
     );
 
-  const loadBooks = (pageNum = page, searchTerm = search) => {
+  const loadBooks = useCallback((
+    pageNum = page,
+    searchTerm = search,
+    subjectFilters = selectedSubjects,
+    languageFilters = selectedLanguages,
+  ) => {
     setLoading(true);
-    const params = { page: pageNum, limit: PAGE_SIZE };
-    const trimmed = searchTerm.trim();
-    if (trimmed) params.search = trimmed;
+    const params = buildBookListParams({
+      page: pageNum,
+      limit: PAGE_SIZE,
+      search: searchTerm,
+      selectedSubjects: subjectFilters,
+      selectedLanguages: languageFilters,
+    });
 
     Promise.all([api.getBooks(params), loadUserContext()])
       .then(([booksRes]) => {
@@ -66,14 +82,40 @@ export default function UserBooks() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  };
+  }, [page, search, selectedSubjects, selectedLanguages]);
 
   useEffect(() => {
-    loadBooks(page, search);
-  }, [page, search]);
+    api.getBookFilters()
+      .then((options) => setFilterOptions({
+        subjects: options.subjects ?? [],
+        languages: options.languages ?? [],
+      }))
+      .catch(() => setFilterOptions(emptyFilterOptions));
+  }, []);
+
+  useEffect(() => {
+    loadBooks(page, search, selectedSubjects, selectedLanguages);
+  }, [page, search, selectedSubjects, selectedLanguages, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
+    setPage(1);
+  };
+
+  const handleSubjectsChange = (values) => {
+    setSelectedSubjects(values);
+    setPage(1);
+  };
+
+  const handleLanguagesChange = (values) => {
+    setSelectedLanguages(values);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setSelectedSubjects([]);
+    setSelectedLanguages([]);
     setPage(1);
   };
 
@@ -92,7 +134,7 @@ export default function UserBooks() {
     setRequestingId(bookId);
     try {
       await api.submitBorrowRequest(bookId);
-      loadBooks(page, search);
+      loadBooks(page, search, selectedSubjects, selectedLanguages);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -110,6 +152,9 @@ export default function UserBooks() {
       <UserBooksContent
         books={books}
         search={search}
+        selectedSubjects={selectedSubjects}
+        selectedLanguages={selectedLanguages}
+        filterOptions={filterOptions}
         loading={loading}
         total={total}
         start={start}
@@ -124,6 +169,9 @@ export default function UserBooks() {
         holdsByBookId={holdsByBookId}
         atBorrowLimit={atBorrowLimit}
         onSearchChange={handleSearchChange}
+        onSubjectsChange={handleSubjectsChange}
+        onLanguagesChange={handleLanguagesChange}
+        onClearFilters={handleClearFilters}
         onPageChange={setPage}
         onRequest={handleRequest}
       />

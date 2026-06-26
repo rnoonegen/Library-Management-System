@@ -204,7 +204,34 @@ async function runMigrations() {
   `);
   await pool.query(`
     ALTER TABLE books ADD CONSTRAINT books_book_type_check
-      CHECK (book_type IN ('borrow', 'reference'))
+      CHECK (book_type IN ('borrow', 'reference', 'sell'))
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      book_id INTEGER NOT NULL REFERENCES books(id),
+      amount NUMERIC(10, 2) NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      admin_note TEXT,
+      reviewed_by INTEGER REFERENCES users(id),
+      reviewed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_purchase_orders_user_id
+    ON purchase_orders (user_id)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_purchase_orders_book_id
+    ON purchase_orders (book_id)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_purchase_orders_status
+    ON purchase_orders (status)
   `);
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_books_book_type

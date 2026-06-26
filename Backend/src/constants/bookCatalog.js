@@ -24,7 +24,7 @@ function mergeCatalogOptions(predefined, fromDatabase = []) {
   );
 }
 
-const BOOK_TYPES = ["borrow", "reference"];
+const BOOK_TYPES = ["borrow", "reference", "sell"];
 
 const DEFAULT_BOOK_TYPE = "borrow";
 

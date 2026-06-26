@@ -19,6 +19,38 @@ export function normalizeFilterSelection(selected = [], allOptions = []) {
   return selected;
 }
 
+function buildSharedFilterParams({
+  search = '',
+  selectedSubjects = [],
+  selectedLanguages = [],
+  filterOptions = {},
+}) {
+  const { subjects: subjectOptions, languages: languageOptions } = getMergedFilterOptions(filterOptions);
+  const subjects = normalizeFilterSelection(selectedSubjects, subjectOptions);
+  const languages = normalizeFilterSelection(selectedLanguages, languageOptions);
+
+  const params = {};
+  const trimmed = search.trim();
+  if (trimmed) params.search = trimmed;
+  if (subjects.length) params.subject = subjects.join(',');
+  if (languages.length) params.language = languages.join(',');
+  return params;
+}
+
+export function buildBookTypeCountParams({
+  search = '',
+  selectedSubjects = [],
+  selectedLanguages = [],
+  filterOptions = {},
+}) {
+  return buildSharedFilterParams({
+    search,
+    selectedSubjects,
+    selectedLanguages,
+    filterOptions,
+  });
+}
+
 export function buildBookListParams({
   page,
   limit,
@@ -27,19 +59,28 @@ export function buildBookListParams({
   selectedLanguages = [],
   filterOptions = {},
   bookType = DEFAULT_BOOK_TYPE,
+  priceSort = '',
 }) {
-  const { subjects: subjectOptions, languages: languageOptions } = getMergedFilterOptions(filterOptions);
-  const subjects = normalizeFilterSelection(selectedSubjects, subjectOptions);
-  const languages = normalizeFilterSelection(selectedLanguages, languageOptions);
+  const params = {
+    page,
+    limit,
+    ...buildSharedFilterParams({
+      search,
+      selectedSubjects,
+      selectedLanguages,
+      filterOptions,
+    }),
+  };
 
-  const params = { page, limit };
-  const trimmed = search.trim();
-  if (trimmed) params.search = trimmed;
-  if (subjects.length) params.subject = subjects.join(',');
-  if (languages.length) params.language = languages.join(',');
-  if (bookType === BOOK_TYPES.borrow || bookType === BOOK_TYPES.reference) {
+  if (bookType === BOOK_TYPES.borrow || bookType === BOOK_TYPES.reference || bookType === BOOK_TYPES.sell) {
     params.book_type = bookType;
   }
+
+  const canSortByPrice = bookType === BOOK_TYPES.sell || bookType === BOOK_TYPES.all;
+  if (canSortByPrice && priceSort) {
+    params.sort = priceSort;
+  }
+
   return params;
 }
 
@@ -48,13 +89,21 @@ export function hasBookFilters(
   selectedSubjects = [],
   selectedLanguages = [],
   filterOptions = {},
+  priceSort = '',
 ) {
   const { subjects: subjectOptions, languages: languageOptions } = getMergedFilterOptions(filterOptions);
   const subjectsActive = normalizeFilterSelection(selectedSubjects, subjectOptions).length > 0;
   const languagesActive = normalizeFilterSelection(selectedLanguages, languageOptions).length > 0;
-  return Boolean(search.trim() || subjectsActive || languagesActive);
+  return Boolean(search.trim() || subjectsActive || languagesActive || priceSort);
 }
 
 export function isAllFilterSelection(selected = [], allOptions = []) {
   return allOptions.length > 0 && selected.length >= allOptions.length;
 }
+
+export const EMPTY_TYPE_COUNTS = {
+  all: 0,
+  borrow: 0,
+  reference: 0,
+  sell: 0,
+};

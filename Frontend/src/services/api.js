@@ -105,6 +105,11 @@ export const api = {
 
   getBookFilters: () => request("/books/filters"),
 
+  getBookTypeCounts: (params) => {
+    const query = params ? `?${new URLSearchParams(params)}` : "";
+    return request(`/books/type-counts${query}`);
+  },
+
   getAvailableBooks: () => request("/books/available"),
 
   createBook: (book) =>
@@ -195,4 +200,26 @@ export const api = {
     request(`/borrow-requests/${id}`, { method: "DELETE" }),
 
   getHoldQueueSummary: () => request("/admin/borrow-requests/summary"),
+
+  submitPurchaseOrder: (bookId) =>
+    request("/purchase-orders", {
+      method: "POST",
+      body: JSON.stringify({ book_id: bookId }),
+    }),
+
+  getMyPurchaseOrders: () => request("/purchase-orders/mine"),
+
+  cancelPurchaseOrder: (id) =>
+    request(`/purchase-orders/${id}`, { method: "DELETE" }),
+
+  getPurchaseOrders: (params) => {
+    const query = params ? `?${new URLSearchParams(params)}` : "";
+    return request(`/admin/purchase-orders${query}`);
+  },
+
+  reviewPurchaseOrder: (id, payload) =>
+    request(`/admin/purchase-orders/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
 };

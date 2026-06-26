@@ -30,7 +30,17 @@ function parseListFilters(query = {}) {
     subject: query.subject || '',
     language: query.language || '',
     book_type: query.book_type || '',
+    sort: query.sort || 'title',
   };
+}
+
+function validateBookTypeRules(data) {
+  const bookType = data.book_type || DEFAULT_BOOK_TYPE;
+  if (bookType === 'sell') {
+    if (data.price == null || data.price <= 0) {
+      throw new AppError('Price is required for books marked for sale', 400);
+    }
+  }
 }
 
 async function listBooks(query = {}) {
@@ -42,6 +52,11 @@ async function listBooks(query = {}) {
 
 async function listBookFilters() {
   return bookRepository.findFilterOptions();
+}
+
+async function listBookTypeCounts(query = {}) {
+  const filters = parseListFilters(query);
+  return bookRepository.getTypeCounts(filters);
 }
 
 async function listAvailableBooks() {
@@ -67,7 +82,9 @@ async function createBook(data) {
     throw new AppError('ISBN, title, and author are required', 400);
   }
 
-  const id = await bookRepository.create(normalizeBookInput(data));
+  const normalized = normalizeBookInput(data);
+  validateBookTypeRules(normalized);
+  const id = await bookRepository.create(normalized);
   return bookRepository.findById(id);
 }
 
@@ -93,6 +110,7 @@ async function updateBook(id, data) {
     book_type: data.book_type !== undefined ? data.book_type || DEFAULT_BOOK_TYPE : existing.book_type,
   };
 
+  validateBookTypeRules(merged);
   await bookRepository.update(id, merged);
   return bookRepository.findById(id);
 }
@@ -106,6 +124,7 @@ async function deleteBook(id) {
 module.exports = {
   listBooks,
   listBookFilters,
+  listBookTypeCounts,
   listAvailableBooks,
   createBook,
   updateBook,

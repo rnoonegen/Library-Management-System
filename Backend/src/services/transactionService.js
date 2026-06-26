@@ -75,6 +75,9 @@ async function borrowBook({
   if (book.book_type === "reference") {
     throw new AppError("Reference books cannot be borrowed — for in-library reading only", 400);
   }
+  if (book.book_type === "sell") {
+    throw new AppError("Books for sale cannot be borrowed — purchase instead", 400);
+  }
   if (!user) throw new AppError("User not found", 400);
   if (user.status !== "active")
     throw new AppError("User is not active", 400);

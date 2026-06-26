@@ -20,7 +20,11 @@ const {
   reviewBorrowRequestSchema,
   reviewExtensionRequestSchema,
 } = require("../schemas/requestSchemas");
-const { createBookSchema, updateBookSchema, bookQuerySchema } = require("../schemas/bookSchemas");
+const { createBookSchema, updateBookSchema, bookQuerySchema, bookTypeCountQuerySchema } = require("../schemas/bookSchemas");
+const {
+  submitPurchaseOrderSchema,
+  reviewPurchaseOrderSchema,
+} = require("../schemas/purchaseOrderSchemas");
 const {
   borrowBookSchema,
   updateTransactionSchema,
@@ -33,6 +37,7 @@ const healthController = require("../controllers/healthController");
 const bookController = require("../controllers/bookController");
 const transactionController = require("../controllers/transactionController");
 const dashboardController = require("../controllers/dashboardController");
+const purchaseOrderController = require("../controllers/purchaseOrderController");
 
 const router = express.Router();
 
@@ -188,6 +193,37 @@ router.patch(
 
 router.get("/borrows/mine", ...standardUser, asyncHandler(requestController.myBorrows));
 
+router.post(
+  "/purchase-orders",
+  ...standardUser,
+  validate(submitPurchaseOrderSchema),
+  asyncHandler(purchaseOrderController.submitPurchaseOrder),
+);
+router.get(
+  "/purchase-orders/mine",
+  ...standardUser,
+  asyncHandler(purchaseOrderController.myPurchaseOrders),
+);
+router.delete(
+  "/purchase-orders/:id",
+  ...standardUser,
+  validate(idParamSchema),
+  asyncHandler(purchaseOrderController.cancelPurchaseOrder),
+);
+router.get(
+  "/admin/purchase-orders",
+  ...admin,
+  validate(paginationQuerySchema),
+  asyncHandler(purchaseOrderController.listPurchaseOrders),
+);
+router.patch(
+  "/admin/purchase-orders/:id",
+  ...admin,
+  validate(idParamSchema),
+  validate(reviewPurchaseOrderSchema),
+  asyncHandler(purchaseOrderController.reviewPurchaseOrder),
+);
+
 router.get(
   "/books/available",
   ...anyUser,
@@ -197,6 +233,12 @@ router.get(
   "/books/filters",
   ...anyUser,
   asyncHandler(bookController.listBookFilters),
+);
+router.get(
+  "/books/type-counts",
+  ...anyUser,
+  validate(bookTypeCountQuerySchema),
+  asyncHandler(bookController.listBookTypeCounts),
 );
 router.get(
   "/books",

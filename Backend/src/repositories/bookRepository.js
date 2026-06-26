@@ -49,7 +49,7 @@ function buildListFilters({ search = '', subject = '', language = '', book_type 
   }
 
   const bookType = String(book_type || '').trim().toLowerCase();
-  if (bookType === 'borrow' || bookType === 'reference') {
+  if (bookType === 'borrow' || bookType === 'reference' || bookType === 'sell') {
     conditions.push(`book_type = $${paramIndex}`);
     params.push(bookType);
     paramIndex += 1;
@@ -60,6 +60,16 @@ function buildListFilters({ search = '', subject = '', language = '', book_type 
   return { whereClause, params, paramIndex };
 }
 
+const ORDER_BY = {
+  title: 'title ASC',
+  price_asc: 'price ASC NULLS LAST, title ASC',
+  price_desc: 'price DESC NULLS LAST, title ASC',
+};
+
+function resolveOrderBy(sort = 'title') {
+  return ORDER_BY[sort] || ORDER_BY.title;
+}
+
 async function findAll() {
   const { rows } = await getPool().query('SELECT * FROM books ORDER BY title');
   return rows;
@@ -68,6 +78,7 @@ async function findAll() {
 async function findPaginated(page, limit, filters = {}) {
   const offset = (page - 1) * limit;
   const { whereClause, params, paramIndex } = buildListFilters(filters);
+  const orderBy = resolveOrderBy(filters.sort);
 
   const { rows: countRows } = await getPool().query(
     `SELECT COUNT(*)::int AS total FROM books ${whereClause}`,
@@ -76,7 +87,7 @@ async function findPaginated(page, limit, filters = {}) {
   const total = countRows[0].total;
 
   const { rows } = await getPool().query(
-    `SELECT * FROM books ${whereClause} ORDER BY title LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    `SELECT * FROM books ${whereClause} ORDER BY ${orderBy} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
     [...params, limit, offset],
   );
 
@@ -192,6 +203,28 @@ async function findAvailable() {
   return rows;
 }
 
+async function getTypeCounts(filters = {}) {
+  const { whereClause, params } = buildListFilters({ ...filters, book_type: '' });
+  const { rows } = await getPool().query(
+    `SELECT book_type, COUNT(*)::int AS count
+     FROM books ${whereClause}
+     GROUP BY book_type`,
+    params,
+  );
+
+  const counts = { borrow: 0, reference: 0, sell: 0 };
+  rows.forEach((row) => {
+    if (Object.prototype.hasOwnProperty.call(counts, row.book_type)) {
+      counts[row.book_type] = row.count;
+    }
+  });
+
+  return {
+    all: counts.borrow + counts.reference + counts.sell,
+    ...counts,
+  };
+}
+
 async function getInventoryStats() {
   const { rows } = await getPool().query(`
     SELECT
@@ -213,5 +246,6 @@ module.exports = {
   remove,
   decrementQty,
   incrementQty,
+  getTypeCounts,
   getInventoryStats,
 };

@@ -1,6 +1,8 @@
 const { z } = require("zod");
 const { BOOK_TYPES } = require("../constants/bookCatalog");
 
+const BOOK_TYPE_VALUES = BOOK_TYPES;
+
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 const optionalPastDate = z
@@ -23,7 +25,7 @@ const bookBodySchema = z.object({
   abstract: z.string().max(5000).optional().nullable(),
   date_of_publication: optionalPastDate,
   grade_level: z.string().max(50).optional().nullable(),
-  book_type: z.enum(BOOK_TYPES).optional().default("borrow"),
+  book_type: z.enum(BOOK_TYPE_VALUES).optional().default("borrow"),
 });
 
 const createBookSchema = z.object({
@@ -46,8 +48,22 @@ const bookQuerySchema = z.object({
     search: z.string().optional(),
     subject: z.union([z.string(), z.array(z.string())]).optional(),
     language: z.union([z.string(), z.array(z.string())]).optional(),
-    book_type: z.enum(BOOK_TYPES).optional(),
+    book_type: z.enum(BOOK_TYPE_VALUES).optional(),
+    sort: z.enum(["title", "price_asc", "price_desc"]).optional().default("title"),
   }),
 });
 
-module.exports = { createBookSchema, updateBookSchema, bookQuerySchema };
+const bookTypeCountQuerySchema = z.object({
+  query: z.object({
+    search: z.string().optional(),
+    subject: z.union([z.string(), z.array(z.string())]).optional(),
+    language: z.union([z.string(), z.array(z.string())]).optional(),
+  }),
+});
+
+module.exports = {
+  createBookSchema,
+  updateBookSchema,
+  bookQuerySchema,
+  bookTypeCountQuerySchema,
+};

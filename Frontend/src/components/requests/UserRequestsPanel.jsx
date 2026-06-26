@@ -39,6 +39,41 @@ function WaitlistCard({ row, onCancelHold }) {
   );
 }
 
+function PurchaseCard({ row, onCancelPurchase }) {
+  return (
+    <article className="transaction-card">
+      <div className="transaction-card-top">
+        <h3 className="transaction-card-title">{row.book_title}</h3>
+        <StatusBadge status={row.status} />
+      </div>
+      <dl className="transaction-card-details">
+        <div className="transaction-detail">
+          <dt>Ordered</dt>
+          <dd>{formatDateOnly(row.created_at)}</dd>
+        </div>
+        <div className="transaction-detail">
+          <dt>Amount</dt>
+          <dd>{row.amount != null ? `₹${row.amount}` : '—'}</dd>
+        </div>
+        <div className="transaction-detail transaction-detail-full">
+          <dt>Admin note</dt>
+          <dd>{row.admin_note || '—'}</dd>
+        </div>
+      </dl>
+      <div className="transaction-card-actions">
+        {(row.status === 'pending' || row.status === 'ready') && onCancelPurchase && (
+          <Button variant="secondary" onClick={() => onCancelPurchase(row.id)}>Cancel order</Button>
+        )}
+        {row.status === 'ready' && (
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>
+            Visit library to pay and collect
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}
+
 function ExtensionCard({ row }) {
   return (
     <article className="transaction-card">
@@ -64,32 +99,67 @@ export default function UserRequestsPanel({
   tab,
   borrowRequests,
   extensionRequests,
+  purchaseOrders,
   loading,
   borrowSearch,
   extensionSearch,
+  purchaseSearch,
   borrowPagination,
   extensionPagination,
+  purchasePagination,
   borrowTotalAll,
   extensionTotalAll,
+  purchaseTotalAll,
   onTabChange,
   onBorrowSearchChange,
   onExtensionSearchChange,
+  onPurchaseSearchChange,
   onCancelHold,
+  onCancelPurchase,
   onBorrowPageChange,
   onExtensionPageChange,
+  onPurchasePageChange,
 }) {
-  const activeList = tab === 'borrow' ? borrowRequests : extensionRequests;
-  const activePagination = tab === 'borrow' ? borrowPagination : extensionPagination;
-  const activeSearch = tab === 'borrow' ? borrowSearch : extensionSearch;
-  const activeTotalAll = tab === 'borrow' ? borrowTotalAll : extensionTotalAll;
-  const onSearchChange = tab === 'borrow' ? onBorrowSearchChange : onExtensionSearchChange;
-  const onPageChange = tab === 'borrow' ? onBorrowPageChange : onExtensionPageChange;
+  const tabConfig = {
+    borrow: {
+      list: borrowRequests,
+      pagination: borrowPagination,
+      search: borrowSearch,
+      totalAll: borrowTotalAll,
+      onSearchChange: onBorrowSearchChange,
+      onPageChange: onBorrowPageChange,
+      label: 'waitlist entries',
+    },
+    purchase: {
+      list: purchaseOrders,
+      pagination: purchasePagination,
+      search: purchaseSearch,
+      totalAll: purchaseTotalAll,
+      onSearchChange: onPurchaseSearchChange,
+      onPageChange: onPurchasePageChange,
+      label: 'purchase orders',
+    },
+    extension: {
+      list: extensionRequests,
+      pagination: extensionPagination,
+      search: extensionSearch,
+      totalAll: extensionTotalAll,
+      onSearchChange: onExtensionSearchChange,
+      onPageChange: onExtensionPageChange,
+      label: 'extension requests',
+    },
+  };
+
+  const active = tabConfig[tab] || tabConfig.borrow;
 
   return (
     <>
       <div className="tab-bar">
         <button type="button" className={tab === 'borrow' ? 'tab active' : 'tab'} onClick={() => onTabChange('borrow')}>
           Waitlist ({borrowTotalAll})
+        </button>
+        <button type="button" className={tab === 'purchase' ? 'tab active' : 'tab'} onClick={() => onTabChange('purchase')}>
+          Purchases ({purchaseTotalAll})
         </button>
         <button type="button" className={tab === 'extension' ? 'tab active' : 'tab'} onClick={() => onTabChange('extension')}>
           Extensions ({extensionTotalAll})
@@ -99,14 +169,14 @@ export default function UserRequestsPanel({
       <div className="books-toolbar" style={{ marginTop: '1rem' }}>
         <SearchBar
           className="books-search"
-          value={activeSearch}
-          onChange={onSearchChange}
+          value={active.search}
+          onChange={active.onSearchChange}
           placeholder="Search by book title..."
         />
-        {!loading && activePagination.total > 0 && (
+        {!loading && active.pagination.total > 0 && (
           <span className="books-summary">
-            Showing {activePagination.start}–{activePagination.end} of {activePagination.total}{' '}
-            {tab === 'borrow' ? 'waitlist entries' : 'extension requests'}
+            Showing {active.pagination.start}–{active.pagination.end} of {active.pagination.total}{' '}
+            {active.label}
           </span>
         )}
       </div>
@@ -114,17 +184,27 @@ export default function UserRequestsPanel({
       <div className="tab-panel">
         {loading ? (
           <div className="loading">Loading...</div>
-        ) : activeTotalAll === 0 ? (
+        ) : active.totalAll === 0 ? (
           <div className="books-empty">
-            <div className="empty-state-icon" aria-hidden="true">{tab === 'borrow' ? '📋' : '📅'}</div>
-            <strong>{tab === 'borrow' ? 'No waitlist entries yet' : 'No extension requests yet'}</strong>
+            <div className="empty-state-icon" aria-hidden="true">
+              {tab === 'borrow' ? '📋' : tab === 'purchase' ? '🛒' : '📅'}
+            </div>
+            <strong>
+              {tab === 'borrow'
+                ? 'No waitlist entries yet'
+                : tab === 'purchase'
+                  ? 'No purchase orders yet'
+                  : 'No extension requests yet'}
+            </strong>
             <p>
               {tab === 'borrow'
                 ? 'Join a waitlist from the Books page when a title is unavailable.'
-                : 'Request an extension from My Borrows when eligible.'}
+                : tab === 'purchase'
+                  ? 'Order books from the Sell tab on the Books page.'
+                  : 'Request an extension from My Borrows when eligible.'}
             </p>
           </div>
-        ) : activeList.length === 0 ? (
+        ) : active.list.length === 0 ? (
           <div className="books-empty">
             <div className="empty-state-icon" aria-hidden="true">🔍</div>
             <strong>No results found</strong>
@@ -134,20 +214,24 @@ export default function UserRequestsPanel({
           <>
             <div className="transactions-grid">
               {tab === 'borrow'
-                ? activeList.map((row) => (
+                ? active.list.map((row) => (
                     <WaitlistCard key={row.id} row={row} onCancelHold={onCancelHold} />
                   ))
-                : activeList.map((row) => (
-                    <ExtensionCard key={row.id} row={row} />
-                  ))}
+                : tab === 'purchase'
+                  ? active.list.map((row) => (
+                      <PurchaseCard key={row.id} row={row} onCancelPurchase={onCancelPurchase} />
+                    ))
+                  : active.list.map((row) => (
+                      <ExtensionCard key={row.id} row={row} />
+                    ))}
             </div>
             <Pagination
-              page={activePagination.page}
-              totalPages={activePagination.totalPages}
-              startPage={activePagination.startPage}
-              endPage={activePagination.endPage}
-              pageNumbers={activePagination.pageNumbers}
-              onPageChange={onPageChange}
+              page={active.pagination.page}
+              totalPages={active.pagination.totalPages}
+              startPage={active.pagination.startPage}
+              endPage={active.pagination.endPage}
+              pageNumbers={active.pagination.pageNumbers}
+              onPageChange={active.onPageChange}
               className="transactions-pagination"
             />
           </>

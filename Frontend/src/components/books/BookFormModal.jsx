@@ -13,6 +13,8 @@ export default function BookFormModal({
 }) {
   if (!isOpen) return null;
 
+  const isSell = form.book_type === BOOK_TYPES.sell;
+
   return (
     <Modal title={editingId ? 'Edit Book' : 'Add Book'} onClose={onClose}>
       <form onSubmit={onSubmit} className="book-form">
@@ -68,6 +70,7 @@ export default function BookFormModal({
             >
               <option value={BOOK_TYPES.borrow}>{BOOK_TYPE_LABELS.borrow} — can be taken home</option>
               <option value={BOOK_TYPES.reference}>{BOOK_TYPE_LABELS.reference} — in-library reading only</option>
+              <option value={BOOK_TYPES.sell}>{BOOK_TYPE_LABELS.sell} — available for purchase</option>
             </select>
           </div>
           <div className="form-group">
@@ -77,13 +80,14 @@ export default function BookFormModal({
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label>Price (INR)</label>
+            <label>Price (INR){isSell ? ' *' : ''}</label>
             <input
               type="number"
               min="0"
               step="0.01"
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
+              required={isSell}
             />
           </div>
         </div>

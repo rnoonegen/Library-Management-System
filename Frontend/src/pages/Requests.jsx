@@ -9,6 +9,7 @@ export default function Requests() {
   const [queueSummary, setQueueSummary] = useState([]);
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [extensionRequests, setExtensionRequests] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const { askConfirm, askReason, ActionDialog } = useActionDialog();
@@ -19,11 +20,13 @@ export default function Requests() {
       api.getHoldQueueSummary(),
       api.getBorrowRequests({ status: 'active', limit: 100 }),
       api.getExtensionRequests({ status: 'pending', limit: 100 }),
+      api.getPurchaseOrders({ status: 'active', limit: 100 }),
     ])
-      .then(([summary, borrowResult, extensionResult]) => {
+      .then(([summary, borrowResult, extensionResult, purchaseResult]) => {
         setQueueSummary(summary);
         setBorrowRequests(borrowResult.requests || borrowResult);
         setExtensionRequests(extensionResult.requests || extensionResult);
+        setPurchaseOrders(purchaseResult.orders || purchaseResult);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -96,6 +99,47 @@ export default function Requests() {
     }
   }
 
+  async function reviewPurchase(id, action) {
+    setError('');
+    try {
+      if (action === 'ready') {
+        const confirmed = await askConfirm({
+          title: 'Mark order ready',
+          message: 'Notify the user that the book is ready for pickup and payment at the library?',
+          confirmLabel: 'Mark ready',
+          variant: 'primary',
+        });
+        if (!confirmed) return;
+        await api.reviewPurchaseOrder(id, { action });
+      } else if (action === 'paid') {
+        const confirmed = await askConfirm({
+          title: 'Record payment',
+          message: 'Confirm that the user has paid and collected the book?',
+          confirmLabel: 'Mark paid',
+          variant: 'primary',
+        });
+        if (!confirmed) return;
+        await api.reviewPurchaseOrder(id, { action });
+      } else {
+        const adminNote = await askReason({
+          title: 'Cancel purchase order',
+          message: 'The user will be notified and the book copy will be returned to stock.',
+          reasonLabel: 'Reason for cancellation',
+          placeholder: 'Enter a reason (optional)',
+          submitLabel: 'Submit',
+        });
+        if (adminNote === null) return;
+        await api.reviewPurchaseOrder(id, {
+          action,
+          adminNote: adminNote || undefined,
+        });
+      }
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div className="page">
       {error && <div className="error-banner">{error}</div>}
@@ -103,8 +147,8 @@ export default function Requests() {
       <div className="rules-banner">
         <p>
           Waitlists join automatically. When a book is returned, the next user is notified with a {PICKUP_DAYS}-day
-          collect-by date. If they do not come, use <strong>Cancel</strong> on Ready for pickup — the
-          next person in queue is notified automatically.
+          collect-by date. Purchase orders: mark <strong>ready</strong> when prepared, then <strong>paid</strong> when
+          the user pays and collects at the library.
         </p>
       </div>
 
@@ -113,12 +157,13 @@ export default function Requests() {
         queueSummary={queueSummary}
         borrowRequests={borrowRequests}
         extensionRequests={extensionRequests}
+        purchaseOrders={purchaseOrders}
         loading={loading}
         onTabChange={setTab}
         onReviewBorrow={reviewBorrow}
         onReviewExtension={reviewExtension}
+        onReviewPurchase={reviewPurchase}
       />
-
       <ActionDialog />
     </div>
   );

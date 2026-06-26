@@ -8,13 +8,15 @@ import { hasBookFilters } from 'utils/bookFilterParams';
 function BookCard({ book, onEdit, onDelete }) {
   const fmt = (val) => (val == null || val === '' ? '—' : val);
   const isReference = book.book_type === BOOK_TYPES.reference;
+  const isSell = book.book_type === BOOK_TYPES.sell;
+  const typeBadgeClass = isReference ? 'badge-info' : isSell ? 'badge-warning' : 'badge-borrowed';
 
   return (
     <article key={book.id} className="book-card">
       <div className="book-card-top">
         <h3 className="book-card-title">{book.title}</h3>
         <div className="book-card-badges">
-          <span className={isReference ? 'badge badge-info' : 'badge badge-borrowed'}>
+          <span className={`badge ${typeBadgeClass}`}>
             {BOOK_TYPE_LABELS[book.book_type] || BOOK_TYPE_LABELS.borrow}
           </span>
           <span className={book.qty > 0 ? 'badge badge-success' : 'badge badge-danger'}>
@@ -81,6 +83,8 @@ export default function BooksContent({
   selectedLanguages,
   filterOptions,
   bookType,
+  typeCounts,
+  priceSort,
   total,
   start,
   end,
@@ -94,11 +98,18 @@ export default function BooksContent({
   onLanguagesChange,
   onClearFilters,
   onBookTypeChange,
+  onPriceSortChange,
   onEdit,
   onDelete,
   onPageChange,
 }) {
-  const hasActiveFilters = hasBookFilters(search, selectedSubjects, selectedLanguages, filterOptions);
+  const hasActiveFilters = hasBookFilters(
+    search,
+    selectedSubjects,
+    selectedLanguages,
+    filterOptions,
+    priceSort,
+  );
   const emptyMessage = hasActiveFilters ? 'No books found' : 'No books yet';
   const emptyHint = hasActiveFilters
     ? 'Try a different search term or clear the filters.'
@@ -106,7 +117,7 @@ export default function BooksContent({
 
   return (
     <>
-      <BookTypeTabs activeType={bookType} onChange={onBookTypeChange} />
+      <BookTypeTabs activeType={bookType} counts={typeCounts} onChange={onBookTypeChange} />
 
       <div className="books-toolbar">
         <div className="books-toolbar-main">
@@ -132,6 +143,9 @@ export default function BooksContent({
           onLanguagesChange={onLanguagesChange}
           onClear={onClearFilters}
           hasActiveFilters={hasActiveFilters}
+          bookType={bookType}
+          priceSort={priceSort}
+          onPriceSortChange={onPriceSortChange}
         />
       </div>
 

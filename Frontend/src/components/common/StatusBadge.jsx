@@ -7,6 +7,7 @@ export default function StatusBadge({ status }) {
     approved: 'badge-success',
     rejected: 'badge-danger',
     cancelled: 'badge-muted',
+    paid: 'badge-success',
     borrowed: 'badge-info',
     returned: 'badge-muted',
     overdue: 'badge-danger',

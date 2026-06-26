@@ -7,11 +7,16 @@ export default function AdminRequestsPanel({
   queueSummary,
   borrowRequests,
   extensionRequests,
+  purchaseOrders,
   loading,
   onTabChange,
   onReviewBorrow,
   onReviewExtension,
+  onReviewPurchase,
 }) {
+  const readyBorrowCount = borrowRequests.filter((r) => r.status === 'ready').length;
+  const activePurchaseCount = purchaseOrders.length;
+
   return (
     <>
       <div className="tab-bar">
@@ -19,7 +24,10 @@ export default function AdminRequestsPanel({
           Queue overview ({queueSummary.length})
         </button>
         <button type="button" className={tab === 'ready' ? 'tab active' : 'tab'} onClick={() => onTabChange('ready')}>
-          Ready for pickup ({borrowRequests.filter((r) => r.status === 'ready').length})
+          Ready for pickup ({readyBorrowCount})
+        </button>
+        <button type="button" className={tab === 'purchase' ? 'tab active' : 'tab'} onClick={() => onTabChange('purchase')}>
+          Purchase orders ({activePurchaseCount})
         </button>
         <button type="button" className={tab === 'extension' ? 'tab active' : 'tab'} onClick={() => onTabChange('extension')}>
           Extensions ({extensionRequests.length})
@@ -61,7 +69,7 @@ export default function AdminRequestsPanel({
             </div>
           )
         ) : tab === 'ready' ? (
-          borrowRequests.filter((r) => r.status === 'ready').length === 0 ? (
+          readyBorrowCount === 0 ? (
             <p className="text-muted">No books ready for pickup right now.</p>
           ) : (
             <div className="table-wrap">
@@ -87,6 +95,53 @@ export default function AdminRequestsPanel({
                         <Button variant="danger" onClick={() => onReviewBorrow(row.id, 'cancel')}>
                           Cancel
                         </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : tab === 'purchase' ? (
+          activePurchaseCount === 0 ? (
+            <p className="text-muted">No active purchase orders right now.</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Book</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Ordered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseOrders.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.user_name} ({row.user_username})</td>
+                      <td>{row.book_title}</td>
+                      <td>{row.amount != null ? `₹${row.amount}` : '—'}</td>
+                      <td><StatusBadge status={row.status} /></td>
+                      <td>{formatDateOnly(row.created_at)}</td>
+                      <td className="table-actions">
+                        {row.status === 'pending' && (
+                          <Button variant="primary" onClick={() => onReviewPurchase(row.id, 'ready')}>
+                            Mark ready
+                          </Button>
+                        )}
+                        {row.status === 'ready' && (
+                          <Button variant="primary" onClick={() => onReviewPurchase(row.id, 'paid')}>
+                            Mark paid
+                          </Button>
+                        )}
+                        {(row.status === 'pending' || row.status === 'ready') && (
+                          <Button variant="danger" onClick={() => onReviewPurchase(row.id, 'cancel')}>
+                            Cancel
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}

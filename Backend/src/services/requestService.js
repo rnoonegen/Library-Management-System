@@ -42,6 +42,9 @@ async function submitBorrowRequest(userId, bookId) {
   if (book.book_type === "reference") {
     throw new AppError("Reference books cannot be borrowed — for in-library reading only", 400);
   }
+  if (book.book_type === "sell") {
+    throw new AppError("This book is for sale only — use the Buy option", 400);
+  }
   if (book.qty > 0) {
     throw new AppError("Book is available — visit the library to borrow it", 400);
   }

@@ -19,16 +19,25 @@ export const BOOK_SUBJECTS = [
 ];
 
 export const BOOK_TYPES = {
+  all: 'all',
   borrow: 'borrow',
   reference: 'reference',
+  sell: 'sell',
 };
 
-export const DEFAULT_BOOK_TYPE = BOOK_TYPES.borrow;
+export const DEFAULT_BOOK_TYPE = BOOK_TYPES.all;
 
 export const BOOK_TYPE_LABELS = {
+  all: 'All',
   borrow: 'Borrow',
   reference: 'Reference',
+  sell: 'Sell',
 };
+
+export const PRICE_SORT_OPTIONS = [
+  { value: 'price_asc', label: 'Price: Low to High' },
+  { value: 'price_desc', label: 'Price: High to Low' },
+];
 
 export function mergeCatalogOptions(predefined, fromApi = []) {
   return [...new Set([...predefined, ...fromApi.filter(Boolean)])].sort((a, b) =>

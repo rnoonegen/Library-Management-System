@@ -1073,6 +1073,16 @@ video {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+.filter-select-native {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+}
 .filter-select {
   position: relative;
 }

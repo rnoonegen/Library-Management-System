@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
+function getOptionMeta(item) {
+  if (typeof item === 'object' && item !== null) {
+    return { value: item.value, label: item.label };
+  }
+  return { value: item, label: item };
+}
+
 export default function FilterSelect({
   label,
   value,
@@ -10,6 +17,7 @@ export default function FilterSelect({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const normalizedOptions = options.map(getOptionMeta);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -34,20 +42,21 @@ export default function FilterSelect({
     };
   }, [open]);
 
-  const displayValue = value || placeholder;
+  const selectedOption = normalizedOptions.find((item) => item.value === value);
+  const displayValue = selectedOption?.label || placeholder;
 
   return (
     <div className="books-filter filter-select" ref={rootRef}>
       <span className="books-filter-label">{label}</span>
       <button
         type="button"
-        className={`filter-select-trigger${open ? ' is-open' : ''}`}
+        className={`filter-select-trigger${open ? ' is-open' : ''}${value ? ' has-value' : ''}`}
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
       >
-        <span className="filter-select-value">{displayValue}</span>
+        <span className={`filter-select-value${!value ? ' is-placeholder' : ''}`}>{displayValue}</span>
         <span className="filter-select-chevron" aria-hidden="true" />
       </button>
 
@@ -67,19 +76,19 @@ export default function FilterSelect({
               {placeholder}
             </button>
           </li>
-          {options.map((item) => (
-            <li key={item} role="presentation">
+          {normalizedOptions.map((item) => (
+            <li key={item.value} role="presentation">
               <button
                 type="button"
                 role="option"
-                aria-selected={value === item}
-                className={`filter-select-option${value === item ? ' is-active' : ''}`}
+                aria-selected={value === item.value}
+                className={`filter-select-option${value === item.value ? ' is-active' : ''}`}
                 onClick={() => {
-                  onChange(item);
+                  onChange(item.value);
                   setOpen(false);
                 }}
               >
-                {item}
+                {item.label}
               </button>
             </li>
           ))}

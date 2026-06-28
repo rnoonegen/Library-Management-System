@@ -24,10 +24,24 @@ function normalizeBookInput(data) {
   };
 }
 
+function normalizeStringArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function parseListFilters(query = {}) {
   return {
     search: query.search || '',
     book_type: query.book_type || '',
+    subjects: normalizeStringArray(query.subjects),
+    languages: normalizeStringArray(query.languages),
+    sort: query.sort || '',
   };
 }
 

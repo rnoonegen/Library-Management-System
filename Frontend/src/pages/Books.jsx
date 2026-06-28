@@ -51,6 +51,9 @@ export default function Books() {
   const [books, setBooks] = useState([]);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [subjects, setSubjects] = useState([]);
+  const [languages, setLanguages] = useState([]);
+  const [priceSort, setPriceSort] = useState('');
   const [bookType, setBookType] = useState(DEFAULT_BOOK_TYPE);
   const [typeCounts, setTypeCounts] = useState(EMPTY_TYPE_COUNTS);
   const [total, setTotal] = useState(0);
@@ -66,6 +69,9 @@ export default function Books() {
     pageNum = page,
     searchTerm = search,
     typeFilter = bookType,
+    subjectFilter = subjects,
+    languageFilter = languages,
+    sortFilter = priceSort,
   ) => {
     setLoading(true);
     const params = buildBookListParams({
@@ -73,9 +79,16 @@ export default function Books() {
       limit: PAGE_SIZE,
       search: searchTerm,
       bookType: typeFilter,
+      subjects: subjectFilter,
+      languages: languageFilter,
+      priceSort: sortFilter,
     });
 
-    const countParams = buildBookTypeCountParams({ search: searchTerm });
+    const countParams = buildBookTypeCountParams({
+      search: searchTerm,
+      subjects: subjectFilter,
+      languages: languageFilter,
+    });
 
     return Promise.all([
       api.getBooks(params),
@@ -90,11 +103,11 @@ export default function Books() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search, bookType]);
+  }, [page, search, bookType, subjects, languages, priceSort]);
 
   useEffect(() => {
-    loadBooks(page, search, bookType);
-  }, [page, search, bookType, loadBooks]);
+    loadBooks(page, search, bookType, subjects, languages, priceSort);
+  }, [page, search, bookType, subjects, languages, priceSort, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
@@ -103,6 +116,30 @@ export default function Books() {
 
   const handleBookTypeChange = (type) => {
     setBookType(type);
+    if (type !== BOOK_TYPES.sell) setPriceSort('');
+    setPage(1);
+  };
+
+  const handleSubjectsChange = (nextSubjects) => {
+    setSubjects(nextSubjects);
+    setPage(1);
+  };
+
+  const handleLanguagesChange = (nextLanguages) => {
+    setLanguages(nextLanguages);
+    setPage(1);
+  };
+
+  const handlePriceSortChange = (nextSort) => {
+    setPriceSort(nextSort);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setSubjects([]);
+    setLanguages([]);
+    setPriceSort('');
     setPage(1);
   };
 
@@ -199,6 +236,9 @@ export default function Books() {
         books={books}
         loading={loading}
         search={search}
+        subjects={subjects}
+        languages={languages}
+        priceSort={priceSort}
         bookType={bookType}
         typeCounts={typeCounts}
         total={total}
@@ -210,6 +250,10 @@ export default function Books() {
         endPage={endPage}
         pageNumbers={pageNumbers}
         onSearchChange={handleSearchChange}
+        onSubjectsChange={handleSubjectsChange}
+        onLanguagesChange={handleLanguagesChange}
+        onPriceSortChange={handlePriceSortChange}
+        onClearFilters={handleClearFilters}
         onBookTypeChange={handleBookTypeChange}
         onEdit={openEdit}
         onDelete={handleDelete}

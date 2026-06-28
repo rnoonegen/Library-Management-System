@@ -8,7 +8,7 @@ import { useActionDialog } from 'hooks/useActionDialog';
 
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
 
-import { DEFAULT_BOOK_TYPE } from 'constants/bookCatalog';
+import { BOOK_TYPES, DEFAULT_BOOK_TYPE } from 'constants/bookCatalog';
 
 import { buildBookListParams, buildBookTypeCountParams, EMPTY_TYPE_COUNTS } from 'utils/bookFilterParams';
 
@@ -34,6 +34,9 @@ export default function UserBooks() {
   const [purchasesByBookId, setPurchasesByBookId] = useState({});
   const [atBorrowLimit, setAtBorrowLimit] = useState(false);
   const [search, setSearch] = useState('');
+  const [subjects, setSubjects] = useState([]);
+  const [languages, setLanguages] = useState([]);
+  const [priceSort, setPriceSort] = useState('');
   const [bookType, setBookType] = useState(DEFAULT_BOOK_TYPE);
   const [typeCounts, setTypeCounts] = useState(EMPTY_TYPE_COUNTS);
   const [page, setPage] = useState(1);
@@ -77,6 +80,9 @@ export default function UserBooks() {
     pageNum = page,
     searchTerm = search,
     typeFilter = bookType,
+    subjectFilter = subjects,
+    languageFilter = languages,
+    sortFilter = priceSort,
   ) => {
     setLoading(true);
     const params = buildBookListParams({
@@ -84,9 +90,16 @@ export default function UserBooks() {
       limit: PAGE_SIZE,
       search: searchTerm,
       bookType: typeFilter,
+      subjects: subjectFilter,
+      languages: languageFilter,
+      priceSort: sortFilter,
     });
 
-    const countParams = buildBookTypeCountParams({ search: searchTerm });
+    const countParams = buildBookTypeCountParams({
+      search: searchTerm,
+      subjects: subjectFilter,
+      languages: languageFilter,
+    });
 
     Promise.all([api.getBooks(params), api.getBookTypeCounts(countParams), loadUserContext()])
       .then(([booksRes, counts]) => {
@@ -98,11 +111,11 @@ export default function UserBooks() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search, bookType]);
+  }, [page, search, bookType, subjects, languages, priceSort]);
 
   useEffect(() => {
-    loadBooks(page, search, bookType);
-  }, [page, search, bookType, loadBooks]);
+    loadBooks(page, search, bookType, subjects, languages, priceSort);
+  }, [page, search, bookType, subjects, languages, priceSort, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
@@ -111,6 +124,30 @@ export default function UserBooks() {
 
   const handleBookTypeChange = (type) => {
     setBookType(type);
+    if (type !== BOOK_TYPES.sell) setPriceSort('');
+    setPage(1);
+  };
+
+  const handleSubjectsChange = (nextSubjects) => {
+    setSubjects(nextSubjects);
+    setPage(1);
+  };
+
+  const handleLanguagesChange = (nextLanguages) => {
+    setLanguages(nextLanguages);
+    setPage(1);
+  };
+
+  const handlePriceSortChange = (nextSort) => {
+    setPriceSort(nextSort);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setSubjects([]);
+    setLanguages([]);
+    setPriceSort('');
     setPage(1);
   };
 
@@ -129,7 +166,7 @@ export default function UserBooks() {
     setRequestingId(bookId);
     try {
       await api.submitBorrowRequest(bookId);
-      loadBooks(page, search, bookType);
+      loadBooks(page, search, bookType, subjects, languages, priceSort);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -152,7 +189,7 @@ export default function UserBooks() {
     setBuyingId(bookId);
     try {
       await api.submitPurchaseOrder(bookId);
-      loadBooks(page, search, bookType);
+      loadBooks(page, search, bookType, subjects, languages, priceSort);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -171,6 +208,9 @@ export default function UserBooks() {
       <UserBooksContent
         books={books}
         search={search}
+        subjects={subjects}
+        languages={languages}
+        priceSort={priceSort}
         bookType={bookType}
         typeCounts={typeCounts}
         loading={loading}
@@ -189,6 +229,10 @@ export default function UserBooks() {
         purchasesByBookId={purchasesByBookId}
         atBorrowLimit={atBorrowLimit}
         onSearchChange={handleSearchChange}
+        onSubjectsChange={handleSubjectsChange}
+        onLanguagesChange={handleLanguagesChange}
+        onPriceSortChange={handlePriceSortChange}
+        onClearFilters={handleClearFilters}
         onBookTypeChange={handleBookTypeChange}
         onPageChange={setPage}
         onRequest={handleRequest}

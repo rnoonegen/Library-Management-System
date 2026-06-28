@@ -1,3 +1,5 @@
+export const BOOK_FILTER_OTHER = 'Other';
+
 export const BOOK_LANGUAGES = ['English', 'Hindi', 'Telugu', 'Sanskrit'];
 
 export const BOOK_SUBJECTS = [
@@ -33,6 +35,24 @@ export const BOOK_TYPE_LABELS = {
   reference: 'Reference',
   sell: 'Sell',
 };
+
+export const PRICE_SORT = {
+  lowHigh: 'price_asc',
+  highLow: 'price_desc',
+};
+
+export const PRICE_SORT_OPTIONS = [
+  { value: PRICE_SORT.lowHigh, label: 'Low to High' },
+  { value: PRICE_SORT.highLow, label: 'High to Low' },
+];
+
+export function subjectFilterOptions() {
+  return [...BOOK_SUBJECTS, BOOK_FILTER_OTHER];
+}
+
+export function languageFilterOptions() {
+  return [...BOOK_LANGUAGES, BOOK_FILTER_OTHER];
+}
 
 export function mergeCatalogOptions(predefined, fromApi = []) {
   return [...new Set([...predefined, ...fromApi.filter(Boolean)])].sort((a, b) =>

@@ -1,8 +1,9 @@
 import Button from 'components/common/Button';
-import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
 import BookTypeTabs from 'components/books/BookTypeTabs';
+import BooksControlsPanel from 'components/books/BooksControlsPanel';
 import { BOOK_TYPES } from 'constants/bookCatalog';
+import { hasActiveBookFilters } from 'utils/bookFilterParams';
 
 
 
@@ -253,6 +254,9 @@ function UserBookCard({
 export default function UserBooksContent({
   books,
   search,
+  subjects,
+  languages,
+  priceSort,
   bookType,
   typeCounts,
   loading,
@@ -271,36 +275,42 @@ export default function UserBooksContent({
   purchasesByBookId,
   atBorrowLimit,
   onSearchChange,
+  onSubjectsChange,
+  onLanguagesChange,
+  onPriceSortChange,
+  onClearFilters,
   onBookTypeChange,
   onPageChange,
   onRequest,
   onBuy,
 }) {
-  const hasSearch = Boolean(search.trim());
-  const emptyMessage = hasSearch ? 'No books found' : 'No books available';
-  const emptyHint = hasSearch
-    ? 'Try a different search term.'
+  const hasFilters = hasActiveBookFilters({ search, subjects, languages, bookType, priceSort });
+  const emptyMessage = hasFilters ? 'No books found' : 'No books available';
+  const emptyHint = hasFilters
+    ? 'Try different search terms or filters.'
     : 'Check back later for new titles.';
 
   return (
     <>
       <BookTypeTabs activeType={bookType} counts={typeCounts} onChange={onBookTypeChange} />
 
-      <div className="books-toolbar">
-        <div className="books-toolbar-main">
-          <SearchBar
-            className="books-search"
-            value={search}
-            onChange={onSearchChange}
-            placeholder="Search books by title..."
-          />
-          {!loading && total > 0 && (
-            <span className="books-summary">
-              Showing {start}–{end} of {total} books
-            </span>
-          )}
-        </div>
-      </div>
+      <BooksControlsPanel
+        search={search}
+        onSearchChange={onSearchChange}
+        bookType={bookType}
+        subjects={subjects}
+        languages={languages}
+        priceSort={priceSort}
+        onSubjectsChange={onSubjectsChange}
+        onLanguagesChange={onLanguagesChange}
+        onPriceSortChange={onPriceSortChange}
+        onClearFilters={onClearFilters}
+        showClear={hasFilters}
+        loading={loading}
+        total={total}
+        start={start}
+        end={end}
+      />
 
 
 

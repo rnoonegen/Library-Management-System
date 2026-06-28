@@ -1,3 +1,5 @@
+const BOOK_FILTER_OTHER = "Other";
+
 const BOOK_LANGUAGES = ["English", "Hindi", "Telugu", "Sanskrit"];
 
 const BOOK_SUBJECTS = [
@@ -29,6 +31,7 @@ const BOOK_TYPES = ["borrow", "reference", "sell"];
 const DEFAULT_BOOK_TYPE = "borrow";
 
 module.exports = {
+  BOOK_FILTER_OTHER,
   BOOK_LANGUAGES,
   BOOK_SUBJECTS,
   BOOK_TYPES,

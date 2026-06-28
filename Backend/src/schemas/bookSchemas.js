@@ -5,6 +5,15 @@ const BOOK_TYPE_VALUES = BOOK_TYPES;
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+const optionalStringArray = z.preprocess(
+  (value) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (Array.isArray(value)) return value;
+    return [value];
+  },
+  z.array(z.string().trim().min(1)).optional(),
+);
+
 const optionalPastDate = z
   .union([z.string().date(), z.literal(""), z.null()])
   .optional()
@@ -47,12 +56,17 @@ const bookQuerySchema = z.object({
     limit: z.coerce.number().int().positive().max(100).optional(),
     search: z.string().optional(),
     book_type: z.enum(BOOK_TYPE_VALUES).optional(),
+    subjects: optionalStringArray,
+    languages: optionalStringArray,
+    sort: z.enum(['price_asc', 'price_desc']).optional(),
   }),
 });
 
 const bookTypeCountQuerySchema = z.object({
   query: z.object({
     search: z.string().optional(),
+    subjects: optionalStringArray,
+    languages: optionalStringArray,
   }),
 });
 

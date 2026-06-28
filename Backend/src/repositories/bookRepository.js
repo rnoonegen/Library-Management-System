@@ -2,7 +2,44 @@ const { getPool } = require('../config/connection');
 
 const BOOK_COLUMNS = `isbn, title, publisher, author, qty, price, subject, language, abstract, date_of_publication, grade_level, book_type`;
 
-function buildListFilters({ search = '', book_type = '' } = {}) {
+function normalizeStringArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildFieldFilter(column, values, params, paramIndex) {
+  const list = normalizeStringArray(values);
+  if (list.length === 0) {
+    return { condition: null, paramIndex };
+  }
+
+  const includesOther = list.includes('Other');
+  const regular = list.filter((item) => item !== 'Other');
+  const parts = [];
+
+  if (regular.length > 0) {
+    parts.push(`${column} = ANY($${paramIndex}::text[])`);
+    params.push(regular);
+    paramIndex += 1;
+  }
+
+  if (includesOther) {
+    parts.push(`(${column} IS NULL OR TRIM(${column}) = '')`);
+  }
+
+  return {
+    condition: parts.length === 1 ? parts[0] : `(${parts.join(' OR ')})`,
+    paramIndex,
+  };
+}
+
+function buildListFilters({ search = '', book_type = '', subjects = [], languages = [] } = {}) {
   const conditions = [];
   const params = [];
   let paramIndex = 1;
@@ -21,6 +58,18 @@ function buildListFilters({ search = '', book_type = '' } = {}) {
     paramIndex += 1;
   }
 
+  const subjectFilter = buildFieldFilter('subject', subjects, params, paramIndex);
+  if (subjectFilter.condition) {
+    conditions.push(subjectFilter.condition);
+    paramIndex = subjectFilter.paramIndex;
+  }
+
+  const languageFilter = buildFieldFilter('language', languages, params, paramIndex);
+  if (languageFilter.condition) {
+    conditions.push(languageFilter.condition);
+    paramIndex = languageFilter.paramIndex;
+  }
+
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   return { whereClause, params, paramIndex };
@@ -31,9 +80,24 @@ async function findAll() {
   return rows;
 }
 
+function buildOrderClause({ book_type = '', sort = '' } = {}) {
+  const bookType = String(book_type || '').trim().toLowerCase();
+  const sortKey = String(sort || '').trim().toLowerCase();
+
+  if (bookType === 'sell' && sortKey === 'price_asc') {
+    return 'ORDER BY price ASC NULLS LAST, title ASC';
+  }
+  if (bookType === 'sell' && sortKey === 'price_desc') {
+    return 'ORDER BY price DESC NULLS LAST, title ASC';
+  }
+
+  return 'ORDER BY title ASC';
+}
+
 async function findPaginated(page, limit, filters = {}) {
   const offset = (page - 1) * limit;
   const { whereClause, params, paramIndex } = buildListFilters(filters);
+  const orderClause = buildOrderClause(filters);
 
   const { rows: countRows } = await getPool().query(
     `SELECT COUNT(*)::int AS total FROM books ${whereClause}`,
@@ -42,7 +106,7 @@ async function findPaginated(page, limit, filters = {}) {
   const total = countRows[0].total;
 
   const { rows } = await getPool().query(
-    `SELECT * FROM books ${whereClause} ORDER BY title ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    `SELECT * FROM books ${whereClause} ${orderClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
     [...params, limit, offset],
   );
 

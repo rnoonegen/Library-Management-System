@@ -2,11 +2,15 @@ import Button from 'components/common/Button';
 import StatusBadge from 'components/common/StatusBadge';
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
+import BorrowStatusTabs from 'components/users/BorrowStatusTabs';
 import { formatDateOnly } from 'utils/formatDate';
+import { getBorrowEmptyMessage } from 'utils/borrowFilterParams';
 
 export default function UserBorrowsContent({
   borrows,
   search,
+  statusFilter,
+  statusCounts,
   total,
   totalAll,
   start,
@@ -17,9 +21,13 @@ export default function UserBorrowsContent({
   endPage,
   pageNumbers,
   onSearchChange,
+  onStatusChange,
   onPageChange,
   onOpenExtension,
 }) {
+  const hasSearch = Boolean(search.trim());
+  const emptyMessage = getBorrowEmptyMessage(statusFilter, hasSearch);
+
   return (
     <>
       <div className="books-toolbar">
@@ -36,17 +44,25 @@ export default function UserBorrowsContent({
         )}
       </div>
 
+      {totalAll > 0 && (
+        <BorrowStatusTabs
+          activeStatus={statusFilter}
+          counts={statusCounts}
+          onChange={onStatusChange}
+        />
+      )}
+
       {totalAll === 0 ? (
         <div className="books-empty">
           <div className="empty-state-icon" aria-hidden="true">📖</div>
-          <strong>No borrows yet</strong>
-          <p>Books you borrow from the library will appear here.</p>
+          <strong>{emptyMessage.title}</strong>
+          <p>{emptyMessage.hint}</p>
         </div>
       ) : total === 0 ? (
         <div className="books-empty">
-          <div className="empty-state-icon" aria-hidden="true">🔍</div>
-          <strong>No loans found</strong>
-          <p>Try a different book title or clear the search.</p>
+          <div className="empty-state-icon" aria-hidden="true">{hasSearch ? '🔍' : '📋'}</div>
+          <strong>{emptyMessage.title}</strong>
+          <p>{emptyMessage.hint}</p>
         </div>
       ) : (
         <>

@@ -11,6 +11,7 @@ import UserBorrowsContent from 'components/users/UserBorrowsContent';
 import UserExtensionModal from 'components/users/UserExtensionModal';
 
 import { filterByBookTitle, paginateItems } from 'utils/pagination';
+import { countBorrowsByStatus, filterBorrowsByStatus } from 'utils/borrowFilterParams';
 
 
 
@@ -40,6 +41,8 @@ export default function UserBorrows() {
 
   const [search, setSearch] = useState('');
 
+  const [statusFilter, setStatusFilter] = useState('all');
+
   const [page, setPage] = useState(1);
 
   const [selected, setSelected] = useState(null);
@@ -54,7 +57,11 @@ export default function UserBorrows() {
 
   const allBorrows = data?.borrows ?? [];
 
-  const filteredBorrows = filterByBookTitle(allBorrows, search);
+  const statusCounts = countBorrowsByStatus(allBorrows);
+
+  const statusFilteredBorrows = filterBorrowsByStatus(allBorrows, statusFilter);
+
+  const filteredBorrows = filterByBookTitle(statusFilteredBorrows, search);
 
   const pagination = paginateItems(filteredBorrows, page);
 
@@ -71,6 +78,16 @@ export default function UserBorrows() {
   const handleSearchChange = (value) => {
 
     setSearch(value);
+
+    setPage(1);
+
+  };
+
+
+
+  const handleStatusChange = (status) => {
+
+    setStatusFilter(status);
 
     setPage(1);
 
@@ -150,6 +167,10 @@ export default function UserBorrows() {
 
         search={search}
 
+        statusFilter={statusFilter}
+
+        statusCounts={statusCounts}
+
         total={pagination.total}
 
         totalAll={allBorrows.length}
@@ -169,6 +190,8 @@ export default function UserBorrows() {
         pageNumbers={pagination.pageNumbers}
 
         onSearchChange={handleSearchChange}
+
+        onStatusChange={handleStatusChange}
 
         onPageChange={setPage}
 

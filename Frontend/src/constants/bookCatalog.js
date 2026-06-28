@@ -34,11 +34,6 @@ export const BOOK_TYPE_LABELS = {
   sell: 'Sell',
 };
 
-export const PRICE_SORT_OPTIONS = [
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-];
-
 export function mergeCatalogOptions(predefined, fromApi = []) {
   return [...new Set([...predefined, ...fromApi.filter(Boolean)])].sort((a, b) =>
     a.localeCompare(b),

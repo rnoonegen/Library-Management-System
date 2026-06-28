@@ -28,11 +28,6 @@ async function listAvailableBooks(req, res) {
   res.json(books);
 }
 
-async function listBookFilters(req, res) {
-  const filters = await bookService.listBookFilters();
-  res.json(filters);
-}
-
 async function listBookTypeCounts(req, res) {
   const counts = await bookService.listBookTypeCounts(req.query);
   res.json(counts);
@@ -41,7 +36,6 @@ async function listBookTypeCounts(req, res) {
 module.exports = {
   listBooks,
   listAvailableBooks,
-  listBookFilters,
   listBookTypeCounts,
   createBook,
   updateBook,

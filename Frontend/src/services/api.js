@@ -59,6 +59,18 @@ async function request(path, options = {}, retried = false) {
   return data;
 }
 
+function buildQuery(params) {
+  if (!params) return "";
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      search.append(key, String(value));
+    }
+  });
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
 export const api = {
   login: (username, password) =>
     request("/auth/login", {
@@ -98,17 +110,9 @@ export const api = {
   createUser: (user) =>
     request("/admin/users", { method: "POST", body: JSON.stringify(user) }),
 
-  getBooks: (params) => {
-    const query = params ? `?${new URLSearchParams(params)}` : "";
-    return request(`/books${query}`);
-  },
+  getBooks: (params) => request(`/books${buildQuery(params)}`),
 
-  getBookFilters: () => request("/books/filters"),
-
-  getBookTypeCounts: (params) => {
-    const query = params ? `?${new URLSearchParams(params)}` : "";
-    return request(`/books/type-counts${query}`);
-  },
+  getBookTypeCounts: (params) => request(`/books/type-counts${buildQuery(params)}`),
 
   getAvailableBooks: () => request("/books/available"),
 

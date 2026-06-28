@@ -230,11 +230,6 @@ router.get(
   asyncHandler(bookController.listAvailableBooks),
 );
 router.get(
-  "/books/filters",
-  ...anyUser,
-  asyncHandler(bookController.listBookFilters),
-);
-router.get(
   "/books/type-counts",
   ...anyUser,
   validate(bookTypeCountQuerySchema),

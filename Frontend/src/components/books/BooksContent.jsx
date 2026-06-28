@@ -1,9 +1,7 @@
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
-import BookFilters from 'components/books/BookFilters';
 import BookTypeTabs from 'components/books/BookTypeTabs';
 import { BOOK_TYPE_LABELS, BOOK_TYPES } from 'constants/bookCatalog';
-import { hasBookFilters } from 'utils/bookFilterParams';
 
 function BookCard({ book, onEdit, onDelete }) {
   const fmt = (val) => (val == null || val === '' ? '—' : val);
@@ -24,13 +22,6 @@ function BookCard({ book, onEdit, onDelete }) {
           </span>
         </div>
       </div>
-
-      {(book.subject || book.language) && (
-        <div className="book-card-tags">
-          {book.subject && <span className="book-tag">{book.subject}</span>}
-          {book.language && <span className="book-tag book-tag-language">{book.language}</span>}
-        </div>
-      )}
 
       <dl className="book-card-details">
         <div className="book-detail">
@@ -79,12 +70,8 @@ export default function BooksContent({
   books,
   loading,
   search,
-  selectedSubjects,
-  selectedLanguages,
-  filterOptions,
   bookType,
   typeCounts,
-  priceSort,
   total,
   start,
   end,
@@ -94,25 +81,15 @@ export default function BooksContent({
   endPage,
   pageNumbers,
   onSearchChange,
-  onSubjectsChange,
-  onLanguagesChange,
-  onClearFilters,
   onBookTypeChange,
-  onPriceSortChange,
   onEdit,
   onDelete,
   onPageChange,
 }) {
-  const hasActiveFilters = hasBookFilters(
-    search,
-    selectedSubjects,
-    selectedLanguages,
-    filterOptions,
-    priceSort,
-  );
-  const emptyMessage = hasActiveFilters ? 'No books found' : 'No books yet';
-  const emptyHint = hasActiveFilters
-    ? 'Try a different search term or clear the filters.'
+  const hasSearch = Boolean(search.trim());
+  const emptyMessage = hasSearch ? 'No books found' : 'No books yet';
+  const emptyHint = hasSearch
+    ? 'Try a different search term.'
     : 'Add your first book to get started.';
 
   return (
@@ -133,20 +110,6 @@ export default function BooksContent({
             </span>
           )}
         </div>
-
-        <BookFilters
-          subjects={filterOptions.subjects}
-          languages={filterOptions.languages}
-          selectedSubjects={selectedSubjects}
-          selectedLanguages={selectedLanguages}
-          onSubjectsChange={onSubjectsChange}
-          onLanguagesChange={onLanguagesChange}
-          onClear={onClearFilters}
-          hasActiveFilters={hasActiveFilters}
-          bookType={bookType}
-          priceSort={priceSort}
-          onPriceSortChange={onPriceSortChange}
-        />
       </div>
 
       {loading ? (

@@ -1,26 +1,8 @@
 const { getPool } = require('../config/connection');
-const {
-  BOOK_LANGUAGES,
-  BOOK_SUBJECTS,
-  mergeCatalogOptions,
-} = require('../constants/bookCatalog');
 
 const BOOK_COLUMNS = `isbn, title, publisher, author, qty, price, subject, language, abstract, date_of_publication, grade_level, book_type`;
 
-function parseFilterList(value) {
-  if (!value) return [];
-  const items = Array.isArray(value) ? value : [value];
-  return [
-    ...new Set(
-      items
-        .flatMap((item) => String(item).split(','))
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  ];
-}
-
-function buildListFilters({ search = '', subject = '', language = '', book_type = '' } = {}) {
+function buildListFilters({ search = '', book_type = '' } = {}) {
   const conditions = [];
   const params = [];
   let paramIndex = 1;
@@ -30,22 +12,6 @@ function buildListFilters({ search = '', subject = '', language = '', book_type 
     conditions.push(`title ILIKE $${paramIndex}`);
     params.push(`%${term}%`);
     paramIndex += 1;
-  }
-
-  const subjectFilters = parseFilterList(subject);
-  if (subjectFilters.length > 0) {
-    const placeholders = subjectFilters.map((_, index) => `LOWER($${paramIndex + index})`);
-    conditions.push(`LOWER(subject) IN (${placeholders.join(', ')})`);
-    params.push(...subjectFilters.map((item) => item.toLowerCase()));
-    paramIndex += subjectFilters.length;
-  }
-
-  const languageFilters = parseFilterList(language);
-  if (languageFilters.length > 0) {
-    const placeholders = languageFilters.map((_, index) => `LOWER($${paramIndex + index})`);
-    conditions.push(`LOWER(language) IN (${placeholders.join(', ')})`);
-    params.push(...languageFilters.map((item) => item.toLowerCase()));
-    paramIndex += languageFilters.length;
   }
 
   const bookType = String(book_type || '').trim().toLowerCase();
@@ -60,16 +26,6 @@ function buildListFilters({ search = '', subject = '', language = '', book_type 
   return { whereClause, params, paramIndex };
 }
 
-const ORDER_BY = {
-  title: 'title ASC',
-  price_asc: 'price ASC NULLS LAST, title ASC',
-  price_desc: 'price DESC NULLS LAST, title ASC',
-};
-
-function resolveOrderBy(sort = 'title') {
-  return ORDER_BY[sort] || ORDER_BY.title;
-}
-
 async function findAll() {
   const { rows } = await getPool().query('SELECT * FROM books ORDER BY title');
   return rows;
@@ -78,7 +34,6 @@ async function findAll() {
 async function findPaginated(page, limit, filters = {}) {
   const offset = (page - 1) * limit;
   const { whereClause, params, paramIndex } = buildListFilters(filters);
-  const orderBy = resolveOrderBy(filters.sort);
 
   const { rows: countRows } = await getPool().query(
     `SELECT COUNT(*)::int AS total FROM books ${whereClause}`,
@@ -87,40 +42,11 @@ async function findPaginated(page, limit, filters = {}) {
   const total = countRows[0].total;
 
   const { rows } = await getPool().query(
-    `SELECT * FROM books ${whereClause} ORDER BY ${orderBy} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    `SELECT * FROM books ${whereClause} ORDER BY title ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
     [...params, limit, offset],
   );
 
   return { books: rows, total };
-}
-
-async function findFilterOptions() {
-  const pool = getPool();
-  const [subjectsResult, languagesResult] = await Promise.all([
-    pool.query(`
-      SELECT DISTINCT subject
-      FROM books
-      WHERE subject IS NOT NULL AND TRIM(subject) <> ''
-      ORDER BY subject
-    `),
-    pool.query(`
-      SELECT DISTINCT language
-      FROM books
-      WHERE language IS NOT NULL AND TRIM(language) <> ''
-      ORDER BY language
-    `),
-  ]);
-
-  return {
-    subjects: mergeCatalogOptions(
-      BOOK_SUBJECTS,
-      subjectsResult.rows.map((row) => row.subject),
-    ),
-    languages: mergeCatalogOptions(
-      BOOK_LANGUAGES,
-      languagesResult.rows.map((row) => row.language),
-    ),
-  };
 }
 
 async function findById(id, client) {
@@ -238,7 +164,6 @@ async function getInventoryStats() {
 module.exports = {
   findAll,
   findPaginated,
-  findFilterOptions,
   findAvailable,
   findById,
   create,

@@ -27,10 +27,7 @@ function normalizeBookInput(data) {
 function parseListFilters(query = {}) {
   return {
     search: query.search || '',
-    subject: query.subject || '',
-    language: query.language || '',
     book_type: query.book_type || '',
-    sort: query.sort || 'title',
   };
 }
 
@@ -48,10 +45,6 @@ async function listBooks(query = {}) {
   const limitNum = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 12));
   const filters = parseListFilters(query);
   return getBooksPaginated(pageNum, limitNum, filters);
-}
-
-async function listBookFilters() {
-  return bookRepository.findFilterOptions();
 }
 
 async function listBookTypeCounts(query = {}) {
@@ -123,7 +116,6 @@ async function deleteBook(id) {
 
 module.exports = {
   listBooks,
-  listBookFilters,
   listBookTypeCounts,
   listAvailableBooks,
   createBook,

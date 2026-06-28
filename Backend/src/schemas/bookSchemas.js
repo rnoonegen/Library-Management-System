@@ -46,18 +46,13 @@ const bookQuerySchema = z.object({
     page: z.coerce.number().int().positive().optional(),
     limit: z.coerce.number().int().positive().max(100).optional(),
     search: z.string().optional(),
-    subject: z.union([z.string(), z.array(z.string())]).optional(),
-    language: z.union([z.string(), z.array(z.string())]).optional(),
     book_type: z.enum(BOOK_TYPE_VALUES).optional(),
-    sort: z.enum(["title", "price_asc", "price_desc"]).optional().default("title"),
   }),
 });
 
 const bookTypeCountQuerySchema = z.object({
   query: z.object({
     search: z.string().optional(),
-    subject: z.union([z.string(), z.array(z.string())]).optional(),
-    language: z.union([z.string(), z.array(z.string())]).optional(),
   }),
 });
 

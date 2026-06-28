@@ -1,16 +1,8 @@
 import Button from 'components/common/Button';
-
 import SearchBar from 'components/common/SearchBar';
-
 import Pagination from 'components/common/Pagination';
-
-import BookFilters from 'components/books/BookFilters';
-
 import BookTypeTabs from 'components/books/BookTypeTabs';
-
 import { BOOK_TYPES } from 'constants/bookCatalog';
-
-import { hasBookFilters } from 'utils/bookFilterParams';
 
 
 
@@ -95,22 +87,6 @@ function UserBookCard({
         </span>
 
       </div>
-
-
-
-      {(book.subject || book.language) && (
-
-        <div className="book-card-tags">
-
-          {book.subject && <span className="book-tag">{book.subject}</span>}
-
-          {book.language && <span className="book-tag book-tag-language">{book.language}</span>}
-
-        </div>
-
-      )}
-
-
 
       <dl className="book-card-details">
 
@@ -275,161 +251,55 @@ function UserBookCard({
 
 
 export default function UserBooksContent({
-
   books,
-
   search,
-
-  selectedSubjects,
-
-  selectedLanguages,
-
-  filterOptions,
-
   bookType,
-
   typeCounts,
-
-  priceSort,
-
   loading,
-
   total,
-
   start,
-
   end,
-
   page,
-
   totalPages,
-
   startPage,
-
   endPage,
-
   pageNumbers,
-
   requestingId,
-
   buyingId,
-
   borrowedBookIds,
-
   holdsByBookId,
-
   purchasesByBookId,
-
   atBorrowLimit,
-
   onSearchChange,
-
-  onSubjectsChange,
-
-  onLanguagesChange,
-
-  onClearFilters,
-
   onBookTypeChange,
-
-  onPriceSortChange,
-
   onPageChange,
-
   onRequest,
-
   onBuy,
-
 }) {
-
-  const hasActiveFilters = hasBookFilters(
-
-    search,
-
-    selectedSubjects,
-
-    selectedLanguages,
-
-    filterOptions,
-
-    priceSort,
-
-  );
-
-  const emptyMessage = hasActiveFilters ? 'No books found' : 'No books available';
-
-  const emptyHint = hasActiveFilters
-
-    ? 'Try a different search term or clear the filters.'
-
+  const hasSearch = Boolean(search.trim());
+  const emptyMessage = hasSearch ? 'No books found' : 'No books available';
+  const emptyHint = hasSearch
+    ? 'Try a different search term.'
     : 'Check back later for new titles.';
 
-
-
   return (
-
     <>
-
       <BookTypeTabs activeType={bookType} counts={typeCounts} onChange={onBookTypeChange} />
 
-
-
       <div className="books-toolbar">
-
         <div className="books-toolbar-main">
-
           <SearchBar
-
             className="books-search"
-
             value={search}
-
             onChange={onSearchChange}
-
             placeholder="Search books by title..."
-
           />
-
           {!loading && total > 0 && (
-
             <span className="books-summary">
-
               Showing {start}–{end} of {total} books
-
             </span>
-
           )}
-
         </div>
-
-
-
-        <BookFilters
-
-          subjects={filterOptions.subjects}
-
-          languages={filterOptions.languages}
-
-          selectedSubjects={selectedSubjects}
-
-          selectedLanguages={selectedLanguages}
-
-          onSubjectsChange={onSubjectsChange}
-
-          onLanguagesChange={onLanguagesChange}
-
-          onClear={onClearFilters}
-
-          hasActiveFilters={hasActiveFilters}
-
-          bookType={bookType}
-
-          priceSort={priceSort}
-
-          onPriceSortChange={onPriceSortChange}
-
-        />
-
       </div>
 
 

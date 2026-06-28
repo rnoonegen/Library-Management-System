@@ -5,7 +5,7 @@ import BooksContent from 'components/books/BooksContent';
 import BookFormModal from 'components/books/BookFormModal';
 import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
-import { BOOK_LANGUAGES, BOOK_SUBJECTS, BOOK_TYPES, DEFAULT_BOOK_TYPE } from 'constants/bookCatalog';
+import { BOOK_TYPES, DEFAULT_BOOK_TYPE } from 'constants/bookCatalog';
 import { buildBookListParams, buildBookTypeCountParams, EMPTY_TYPE_COUNTS } from 'utils/bookFilterParams';
 
 function openDatePicker(e) {
@@ -47,18 +47,12 @@ const emptyBook = {
   book_type: BOOK_TYPES.borrow,
 };
 
-const emptyFilterOptions = { subjects: BOOK_SUBJECTS, languages: BOOK_LANGUAGES };
-
 export default function Books() {
   const [books, setBooks] = useState([]);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [selectedSubjects, setSelectedSubjects] = useState([]);
-  const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [bookType, setBookType] = useState(DEFAULT_BOOK_TYPE);
-  const [priceSort, setPriceSort] = useState('');
   const [typeCounts, setTypeCounts] = useState(EMPTY_TYPE_COUNTS);
-  const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [form, setForm] = useState(emptyBook);
@@ -71,29 +65,17 @@ export default function Books() {
   const loadBooks = useCallback((
     pageNum = page,
     searchTerm = search,
-    subjectFilters = selectedSubjects,
-    languageFilters = selectedLanguages,
     typeFilter = bookType,
-    sortFilter = priceSort,
   ) => {
     setLoading(true);
     const params = buildBookListParams({
       page: pageNum,
       limit: PAGE_SIZE,
       search: searchTerm,
-      selectedSubjects: subjectFilters,
-      selectedLanguages: languageFilters,
-      filterOptions,
       bookType: typeFilter,
-      priceSort: sortFilter,
     });
 
-    const countParams = buildBookTypeCountParams({
-      search: searchTerm,
-      selectedSubjects: subjectFilters,
-      selectedLanguages: languageFilters,
-      filterOptions,
-    });
+    const countParams = buildBookTypeCountParams({ search: searchTerm });
 
     return Promise.all([
       api.getBooks(params),
@@ -108,52 +90,19 @@ export default function Books() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [page, search, selectedSubjects, selectedLanguages, bookType, priceSort, filterOptions]);
+  }, [page, search, bookType]);
 
   useEffect(() => {
-    api.getBookFilters()
-      .then((options) => setFilterOptions({
-        subjects: options.subjects ?? [],
-        languages: options.languages ?? [],
-      }))
-      .catch(() => setFilterOptions(emptyFilterOptions));
-  }, []);
-
-  useEffect(() => {
-    loadBooks(page, search, selectedSubjects, selectedLanguages, bookType, priceSort);
-  }, [page, search, selectedSubjects, selectedLanguages, bookType, priceSort, loadBooks]);
+    loadBooks(page, search, bookType);
+  }, [page, search, bookType, loadBooks]);
 
   const handleSearchChange = (value) => {
     setSearch(value);
     setPage(1);
   };
 
-  const handleSubjectsChange = (values) => {
-    setSelectedSubjects(values);
-    setPage(1);
-  };
-
-  const handleLanguagesChange = (values) => {
-    setSelectedLanguages(values);
-    setPage(1);
-  };
-
-  const handleClearFilters = () => {
-    setSearch('');
-    setSelectedSubjects([]);
-    setSelectedLanguages([]);
-    setPriceSort('');
-    setPage(1);
-  };
-
   const handleBookTypeChange = (type) => {
     setBookType(type);
-    if (type !== BOOK_TYPES.sell && type !== BOOK_TYPES.all) setPriceSort('');
-    setPage(1);
-  };
-
-  const handlePriceSortChange = (value) => {
-    setPriceSort(value);
     setPage(1);
   };
 
@@ -213,12 +162,6 @@ export default function Books() {
         await api.createBook(payload);
       }
       modal.close();
-      api.getBookFilters()
-        .then((options) => setFilterOptions({
-          subjects: options.subjects ?? [],
-          languages: options.languages ?? [],
-        }))
-        .catch(() => {});
       if (editingId) loadBooks(page);
       else setPage(1);
     } catch (err) {
@@ -256,12 +199,8 @@ export default function Books() {
         books={books}
         loading={loading}
         search={search}
-        selectedSubjects={selectedSubjects}
-        selectedLanguages={selectedLanguages}
-        filterOptions={filterOptions}
         bookType={bookType}
         typeCounts={typeCounts}
-        priceSort={priceSort}
         total={total}
         start={start}
         end={end}
@@ -271,11 +210,7 @@ export default function Books() {
         endPage={endPage}
         pageNumbers={pageNumbers}
         onSearchChange={handleSearchChange}
-        onSubjectsChange={handleSubjectsChange}
-        onLanguagesChange={handleLanguagesChange}
-        onClearFilters={handleClearFilters}
         onBookTypeChange={handleBookTypeChange}
-        onPriceSortChange={handlePriceSortChange}
         onEdit={openEdit}
         onDelete={handleDelete}
         onPageChange={setPage}

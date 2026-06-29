@@ -1,10 +1,11 @@
 import SearchBar from 'components/common/SearchBar';
+import PageTabs from 'components/common/PageTabs';
 
 const STATUS_TABS = [
   { id: 'all', label: 'All' },
   { id: 'borrowed', label: 'Borrowed' },
-  { id: 'overdue', label: 'Overdue' },
-  { id: 'returned', label: 'Returned' },
+  { id: 'overdue', label: 'Overdue', tone: 'overdue' },
+  { id: 'returned', label: 'Returned', tone: 'returned' },
 ];
 
 function StatusBadge({ status }) {
@@ -112,6 +113,16 @@ export default function TransactionsContent({
 }) {
   return (
     <>
+      <PageTabs
+        tabs={STATUS_TABS.map((tab) => ({
+          ...tab,
+          count: statusCounts[tab.id] ?? 0,
+        }))}
+        activeId={statusFilter}
+        onChange={onStatusChange}
+        ariaLabel="Filter loans by status"
+      />
+
       <div className="transactions-toolbar">
         <SearchBar
           className="transactions-search"
@@ -125,24 +136,6 @@ export default function TransactionsContent({
           </span>
         )}
       </div>
-
-      {!loading && transactions.length > 0 && (
-        <div className="transactions-tabs" role="tablist" aria-label="Filter loans by status">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === tab.id}
-              className={`transactions-tab transactions-tab-${tab.id} ${statusFilter === tab.id ? 'active' : ''}`}
-              onClick={() => onStatusChange(tab.id)}
-            >
-              <span>{tab.label}</span>
-              <span className="transactions-tab-count">{statusCounts[tab.id]}</span>
-            </button>
-          ))}
-        </div>
-      )}
 
       {loading ? (
         <div className="loading">Loading transactions...</div>

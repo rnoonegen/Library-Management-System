@@ -50,10 +50,14 @@ async function listUsers(query = {}) {
     throw new AppError("Invalid role filter", 400);
   }
 
-  const { users, total } = await userRepository.findPaginated(pageNum, limitNum, {
-    role: roleFilter,
-    search: query.search || "",
-  });
+  const search = query.search || "";
+  const [{ users, total }, roleCounts] = await Promise.all([
+    userRepository.findPaginated(pageNum, limitNum, {
+      role: roleFilter,
+      search,
+    }),
+    userRepository.getRoleCounts({ search }),
+  ]);
 
   const userIds = users.map((u) => u.id);
   const transactions = await transactionRepository.findByUserIds(userIds);
@@ -65,6 +69,7 @@ async function listUsers(query = {}) {
     page: pageNum,
     limit: limitNum,
     totalPages: Math.max(1, Math.ceil(total / limitNum)),
+    roleCounts,
   };
 }
 

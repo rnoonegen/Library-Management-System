@@ -1,5 +1,6 @@
 import Button from 'components/common/Button';
 import StatusBadge from 'components/common/StatusBadge';
+import PageTabs from 'components/common/PageTabs';
 import { formatDateOnly } from 'utils/formatDate';
 
 export default function AdminRequestsPanel({
@@ -19,20 +20,17 @@ export default function AdminRequestsPanel({
 
   return (
     <>
-      <div className="tab-bar">
-        <button type="button" className={tab === 'summary' ? 'tab active' : 'tab'} onClick={() => onTabChange('summary')}>
-          Queue overview ({queueSummary.length})
-        </button>
-        <button type="button" className={tab === 'ready' ? 'tab active' : 'tab'} onClick={() => onTabChange('ready')}>
-          Ready for pickup ({readyBorrowCount})
-        </button>
-        <button type="button" className={tab === 'purchase' ? 'tab active' : 'tab'} onClick={() => onTabChange('purchase')}>
-          Purchase orders ({activePurchaseCount})
-        </button>
-        <button type="button" className={tab === 'extension' ? 'tab active' : 'tab'} onClick={() => onTabChange('extension')}>
-          Extensions ({extensionRequests.length})
-        </button>
-      </div>
+      <PageTabs
+        tabs={[
+          { id: 'summary', label: 'Queue overview', count: queueSummary.length },
+          { id: 'ready', label: 'Ready for pickup', count: readyBorrowCount },
+          { id: 'purchase', label: 'Purchase orders', count: activePurchaseCount },
+          { id: 'extension', label: 'Extensions', count: extensionRequests.length },
+        ]}
+        activeId={tab}
+        onChange={onTabChange}
+        ariaLabel="Request queues"
+      />
 
       <div className="tab-panel">
         {loading ? (

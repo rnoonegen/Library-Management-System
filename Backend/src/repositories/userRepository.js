@@ -186,6 +186,45 @@ async function getMemberStats() {
   return rows[0];
 }
 
+function buildMemberSearchClause(search, paramIndex = 1) {
+  const conditions = ["role IN ('teacher', 'student')"];
+  const params = [];
+  let index = paramIndex;
+
+  const term = (search || "").trim();
+  if (term) {
+    conditions.push(
+      `(name ILIKE $${index} OR user_code ILIKE $${index} OR username ILIKE $${index})`,
+    );
+    params.push(`%${term}%`);
+    index += 1;
+  }
+
+  return { where: `WHERE ${conditions.join(" AND ")}`, params, nextIndex: index };
+}
+
+async function getRoleCounts({ search } = {}) {
+  const { where, params } = buildMemberSearchClause(search);
+  const { rows } = await getPool().query(
+    `SELECT role, COUNT(*)::int AS count
+     FROM users ${where}
+     GROUP BY role`,
+    params,
+  );
+
+  const counts = { teacher: 0, student: 0 };
+  rows.forEach((row) => {
+    if (Object.prototype.hasOwnProperty.call(counts, row.role)) {
+      counts[row.role] = row.count;
+    }
+  });
+
+  return {
+    all: counts.teacher + counts.student,
+    ...counts,
+  };
+}
+
 module.exports = {
   findAll,
   findPaginated,
@@ -199,5 +238,6 @@ module.exports = {
   updatePassword,
   remove,
   getMemberStats,
+  getRoleCounts,
   findActiveMembers,
 };

@@ -30,6 +30,12 @@ export default function UserBorrowsContent({
 
   return (
     <>
+      <BorrowStatusTabs
+        activeStatus={statusFilter}
+        counts={statusCounts}
+        onChange={onStatusChange}
+      />
+
       <div className="books-toolbar">
         <SearchBar
           className="books-search"
@@ -43,14 +49,6 @@ export default function UserBorrowsContent({
           </span>
         )}
       </div>
-
-      {totalAll > 0 && (
-        <BorrowStatusTabs
-          activeStatus={statusFilter}
-          counts={statusCounts}
-          onChange={onStatusChange}
-        />
-      )}
 
       {totalAll === 0 ? (
         <div className="books-empty">

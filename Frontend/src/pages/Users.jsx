@@ -52,6 +52,8 @@ export default function Users() {
 
   const [total, setTotal] = useState(0);
 
+  const [roleCounts, setRoleCounts] = useState({ all: 0, teacher: 0, student: 0 });
+
   const [totalPages, setTotalPages] = useState(1);
 
   const [form, setForm] = useState(emptyForm);
@@ -101,6 +103,8 @@ export default function Users() {
         setTotal(result.total ?? 0);
 
         setTotalPages(result.totalPages ?? 1);
+
+        if (result.roleCounts) setRoleCounts(result.roleCounts);
 
         if (result.page && result.page !== pageNum) setPage(result.page);
 
@@ -290,6 +294,8 @@ export default function Users() {
         end={end}
 
         roleFilter={roleFilter}
+
+        roleCounts={roleCounts}
 
         search={search}
 

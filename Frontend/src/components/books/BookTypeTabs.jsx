@@ -1,3 +1,4 @@
+import PageTabs from 'components/common/PageTabs';
 import { BOOK_TYPE_LABELS, BOOK_TYPES } from 'constants/bookCatalog';
 
 const TABS = [
@@ -8,23 +9,18 @@ const TABS = [
 ];
 
 export default function BookTypeTabs({ activeType, counts = {}, onChange }) {
+  const tabs = TABS.map((tab) => ({
+    ...tab,
+    count: counts[tab.id] ?? 0,
+  }));
+
   return (
-    <div className="tab-bar books-type-tabs" role="tablist" aria-label="Book type">
-      {TABS.map((tab) => {
-        const count = counts[tab.id] ?? 0;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeType === tab.id}
-            className={activeType === tab.id ? 'tab active' : 'tab'}
-            onClick={() => onChange(tab.id)}
-          >
-            {tab.label} ({count})
-          </button>
-        );
-      })}
-    </div>
+    <PageTabs
+      className="books-type-tabs"
+      tabs={tabs}
+      activeId={activeType}
+      onChange={onChange}
+      ariaLabel="Book type"
+    />
   );
 }

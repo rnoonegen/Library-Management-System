@@ -2,6 +2,7 @@ import Button from 'components/common/Button';
 import StatusBadge from 'components/common/StatusBadge';
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
+import PageTabs from 'components/common/PageTabs';
 import { formatDateOnly } from 'utils/formatDate';
 
 function WaitlistCard({ row, onCancelHold }) {
@@ -154,17 +155,16 @@ export default function UserRequestsPanel({
 
   return (
     <>
-      <div className="tab-bar">
-        <button type="button" className={tab === 'borrow' ? 'tab active' : 'tab'} onClick={() => onTabChange('borrow')}>
-          Waitlist ({borrowTotalAll})
-        </button>
-        <button type="button" className={tab === 'purchase' ? 'tab active' : 'tab'} onClick={() => onTabChange('purchase')}>
-          Purchases ({purchaseTotalAll})
-        </button>
-        <button type="button" className={tab === 'extension' ? 'tab active' : 'tab'} onClick={() => onTabChange('extension')}>
-          Extensions ({extensionTotalAll})
-        </button>
-      </div>
+      <PageTabs
+        tabs={[
+          { id: 'borrow', label: 'Waitlist', count: borrowTotalAll },
+          { id: 'purchase', label: 'Purchases', count: purchaseTotalAll },
+          { id: 'extension', label: 'Extensions', count: extensionTotalAll },
+        ]}
+        activeId={tab}
+        onChange={onTabChange}
+        ariaLabel="My requests"
+      />
 
       <div className="books-toolbar" style={{ marginTop: '1rem' }}>
         <SearchBar

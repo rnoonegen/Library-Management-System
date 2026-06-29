@@ -1214,10 +1214,6 @@ video {
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
-.users-toolbar .tab-bar {
-  margin-bottom: 0;
-  margin-left: auto;
-}
 .books-search,
 .users-search,
 .transactions-search {
@@ -2162,17 +2158,64 @@ video {
   color: var(--success);
   font-weight: 700;
 }
-.tab-bar {
-  display: inline-flex;
+.tab-bar,
+.page-tabs {
+  display: flex;
   gap: 0.35rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 100%;
   padding: 0.35rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   background: var(--surface-hover);
   border: 1px solid var(--border);
   border-radius: 12px;
-  width: fit-content;
-  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.tab-bar .tab,
+.page-tabs .tab {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  text-align: center;
+  padding: 0.45rem 0.3rem;
+  white-space: normal;
+  line-height: 1.25;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.tab-label {
+  width: 100%;
+  min-width: 0;
+  font-size: clamp(0.65rem, 2.4vw, 0.8125rem);
+}
+.tab-count {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+[data-theme='light'] .tab:not(.active) .tab-count {
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 .tab {
   background: transparent;
@@ -2193,6 +2236,41 @@ video {
   background: var(--primary);
   color: var(--primary-fg);
   box-shadow: var(--shadow-sm);
+}
+.tab.tab-overdue.active {
+  background: rgba(248, 113, 113, 0.18);
+  color: #f87171;
+  box-shadow: none;
+}
+.tab.tab-returned.active {
+  background: rgba(74, 222, 128, 0.18);
+  color: #4ade80;
+  box-shadow: none;
+}
+[data-theme='light'] .tab.tab-overdue.active {
+  color: #b91c1c;
+}
+[data-theme='light'] .tab.tab-returned.active {
+  color: #15803d;
+}
+@media (min-width: 768px) {
+  .tab-bar .tab,
+  .page-tabs .tab {
+    flex-direction: row;
+    padding: 0.5rem 0.6rem;
+    gap: 0.35rem;
+  }
+}
+@media (min-width: 1100px) {
+  .tab-bar .tab,
+  .page-tabs .tab {
+    padding: 0.5rem 1rem;
+  }
+  .tab-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 .tab-panel {
   margin-top: 0;

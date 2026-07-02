@@ -3,15 +3,30 @@ import StatusBadge from 'components/common/StatusBadge';
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
 import PageTabs from 'components/common/PageTabs';
+import BookLinkedCard from 'components/common/BookLinkedCard';
+import { useBookRecordView } from 'hooks/useBookRecordView';
 import { formatDateOnly } from 'utils/formatDate';
 
-function WaitlistCard({ row, onCancelHold }) {
+function WaitlistCard({ row, onCancelHold, onView }) {
   return (
-    <article className="transaction-card">
-      <div className="transaction-card-top">
-        <h3 className="transaction-card-title">{row.book_title}</h3>
-        <StatusBadge status={row.status} />
-      </div>
+    <BookLinkedCard
+      bookId={row.book_id}
+      bookTitle={row.book_title}
+      badge={<StatusBadge status={row.status} />}
+      onView={onView}
+      actions={
+        row.status === 'pending' && onCancelHold ? (
+          <Button variant="secondary" onClick={() => onCancelHold(row.id)}>Cancel waitlist</Button>
+        ) : null
+      }
+      secondaryActions={
+        row.status === 'ready' ? (
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem', width: '100%' }}>
+            Visit library by collect-by date
+          </p>
+        ) : null
+      }
+    >
       <dl className="transaction-card-details">
         <div className="transaction-detail">
           <dt>Joined</dt>
@@ -26,27 +41,30 @@ function WaitlistCard({ row, onCancelHold }) {
           <dd>{formatDateOnly(row.collect_by)}</dd>
         </div>
       </dl>
-      <div className="transaction-card-actions">
-        {row.status === 'pending' && onCancelHold && (
-          <Button variant="secondary" onClick={() => onCancelHold(row.id)}>Cancel waitlist</Button>
-        )}
-        {row.status === 'ready' && (
-          <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>
-            Visit library by collect-by date
-          </p>
-        )}
-      </div>
-    </article>
+    </BookLinkedCard>
   );
 }
 
-function PurchaseCard({ row, onCancelPurchase }) {
+function PurchaseCard({ row, onCancelPurchase, onView }) {
   return (
-    <article className="transaction-card">
-      <div className="transaction-card-top">
-        <h3 className="transaction-card-title">{row.book_title}</h3>
-        <StatusBadge status={row.status} />
-      </div>
+    <BookLinkedCard
+      bookId={row.book_id}
+      bookTitle={row.book_title}
+      badge={<StatusBadge status={row.status} />}
+      onView={onView}
+      actions={
+        (row.status === 'pending' || row.status === 'ready') && onCancelPurchase ? (
+          <Button variant="secondary" onClick={() => onCancelPurchase(row.id)}>Cancel order</Button>
+        ) : null
+      }
+      secondaryActions={
+        row.status === 'ready' ? (
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem', width: '100%' }}>
+            Visit library to pay and collect
+          </p>
+        ) : null
+      }
+    >
       <dl className="transaction-card-details">
         <div className="transaction-detail">
           <dt>Ordered</dt>
@@ -61,27 +79,18 @@ function PurchaseCard({ row, onCancelPurchase }) {
           <dd>{row.admin_note || '—'}</dd>
         </div>
       </dl>
-      <div className="transaction-card-actions">
-        {(row.status === 'pending' || row.status === 'ready') && onCancelPurchase && (
-          <Button variant="secondary" onClick={() => onCancelPurchase(row.id)}>Cancel order</Button>
-        )}
-        {row.status === 'ready' && (
-          <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>
-            Visit library to pay and collect
-          </p>
-        )}
-      </div>
-    </article>
+    </BookLinkedCard>
   );
 }
 
-function ExtensionCard({ row }) {
+function ExtensionCard({ row, onView }) {
   return (
-    <article className="transaction-card">
-      <div className="transaction-card-top">
-        <h3 className="transaction-card-title">{row.book_title}</h3>
-        <StatusBadge status={row.status} />
-      </div>
+    <BookLinkedCard
+      bookId={row.book_id}
+      bookTitle={row.book_title}
+      badge={<StatusBadge status={row.status} />}
+      onView={onView}
+    >
       <dl className="transaction-card-details">
         <div className="transaction-detail">
           <dt>Requested due</dt>
@@ -92,7 +101,7 @@ function ExtensionCard({ row }) {
           <dd>{row.admin_note || '—'}</dd>
         </div>
       </dl>
-    </article>
+    </BookLinkedCard>
   );
 }
 
@@ -121,6 +130,46 @@ export default function UserRequestsPanel({
   onExtensionPageChange,
   onPurchasePageChange,
 }) {
+  const { openBookView, BookViewModal } = useBookRecordView();
+
+  const openWaitlistView = (row) => {
+    openBookView(row.book_id, {
+      recordTitle: 'Waitlist details',
+      recordDetails: [
+        { label: 'Status', value: row.status },
+        { label: 'Joined', value: formatDateOnly(row.created_at) },
+        {
+          label: 'Queue',
+          value: row.status === 'pending' ? `#${row.queue_position || '—'}` : '—',
+        },
+        { label: 'Collect by', value: formatDateOnly(row.collect_by) },
+      ],
+    });
+  };
+
+  const openPurchaseView = (row) => {
+    openBookView(row.book_id, {
+      recordTitle: 'Purchase details',
+      recordDetails: [
+        { label: 'Status', value: row.status },
+        { label: 'Ordered', value: formatDateOnly(row.created_at) },
+        { label: 'Amount', value: row.amount != null ? `₹${row.amount}` : '—' },
+        { label: 'Admin note', value: row.admin_note || '—' },
+      ],
+    });
+  };
+
+  const openExtensionView = (row) => {
+    openBookView(row.book_id, {
+      recordTitle: 'Extension details',
+      recordDetails: [
+        { label: 'Status', value: row.status },
+        { label: 'Requested due', value: formatDateOnly(row.requested_due_date) },
+        { label: 'Admin note', value: row.admin_note || '—' },
+      ],
+    });
+  };
+
   const tabConfig = {
     borrow: {
       list: borrowRequests,
@@ -212,17 +261,31 @@ export default function UserRequestsPanel({
           </div>
         ) : (
           <>
-            <div className="transactions-grid">
+            <div className="transactions-grid transactions-catalog-grid">
               {tab === 'borrow'
                 ? active.list.map((row) => (
-                    <WaitlistCard key={row.id} row={row} onCancelHold={onCancelHold} />
+                    <WaitlistCard
+                      key={row.id}
+                      row={row}
+                      onCancelHold={onCancelHold}
+                      onView={() => openWaitlistView(row)}
+                    />
                   ))
                 : tab === 'purchase'
                   ? active.list.map((row) => (
-                      <PurchaseCard key={row.id} row={row} onCancelPurchase={onCancelPurchase} />
+                      <PurchaseCard
+                        key={row.id}
+                        row={row}
+                        onCancelPurchase={onCancelPurchase}
+                        onView={() => openPurchaseView(row)}
+                      />
                     ))
                   : active.list.map((row) => (
-                      <ExtensionCard key={row.id} row={row} />
+                      <ExtensionCard
+                        key={row.id}
+                        row={row}
+                        onView={() => openExtensionView(row)}
+                      />
                     ))}
             </div>
             <Pagination
@@ -237,6 +300,8 @@ export default function UserRequestsPanel({
           </>
         )}
       </div>
+
+      {BookViewModal}
     </>
   );
 }

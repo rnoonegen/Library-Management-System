@@ -33,10 +33,17 @@ async function listBookTypeCounts(req, res) {
   res.json(counts);
 }
 
+async function getBook(req, res) {
+  const book = await bookService.getBook(req.params.id);
+  if (!book) throw new AppError('Book not found', 404);
+  res.json(book);
+}
+
 module.exports = {
   listBooks,
   listAvailableBooks,
   listBookTypeCounts,
+  getBook,
   createBook,
   updateBook,
   deleteBook,

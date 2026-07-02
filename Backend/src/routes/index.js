@@ -241,6 +241,12 @@ router.get(
   validate(bookQuerySchema),
   asyncHandler(bookController.listBooks),
 );
+router.get(
+  "/books/:id",
+  ...anyUser,
+  validate(idParamSchema),
+  asyncHandler(bookController.getBook),
+);
 router.post(
   "/books",
   ...admin,

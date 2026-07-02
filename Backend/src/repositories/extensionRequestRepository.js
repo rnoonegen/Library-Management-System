@@ -4,7 +4,8 @@ const SELECT_FIELDS = `
   er.*,
   u.name AS user_name,
   u.username AS user_username,
-  b.title AS book_title
+  b.title AS book_title,
+  t.book_id AS book_id
 `;
 
 async function findAll({ status } = {}) {

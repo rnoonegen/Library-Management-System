@@ -128,10 +128,15 @@ async function deleteBook(id) {
   return bookRepository.remove(id);
 }
 
+async function getBook(id) {
+  return bookRepository.findById(id);
+}
+
 module.exports = {
   listBooks,
   listBookTypeCounts,
   listAvailableBooks,
+  getBook,
   createBook,
   updateBook,
   deleteBook,

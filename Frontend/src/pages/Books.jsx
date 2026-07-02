@@ -7,6 +7,13 @@ import { useActionDialog } from 'hooks/useActionDialog';
 import { PAGE_SIZE, buildPageNumbers } from 'utils/pagination';
 import { BOOK_TYPES, DEFAULT_BOOK_TYPE } from 'constants/bookCatalog';
 import { buildBookListParams, buildBookTypeCountParams, EMPTY_TYPE_COUNTS } from 'utils/bookFilterParams';
+import {
+  getBookImages,
+  setBookImages,
+  removeBookImages,
+  readImageFilesAsDataUrls,
+  MAX_IMAGES_PER_BOOK,
+} from 'utils/bookImageStore';
 
 function openDatePicker(e) {
   try {
@@ -59,6 +66,7 @@ export default function Books() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [form, setForm] = useState(emptyBook);
+  const [bookImages, setBookImagesState] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -146,6 +154,7 @@ export default function Books() {
   const openCreate = () => {
     const defaultType = bookType === BOOK_TYPES.all ? BOOK_TYPES.borrow : bookType;
     setForm({ ...emptyBook, book_type: defaultType });
+    setBookImagesState([]);
     setEditingId(null);
     modal.open();
   };
@@ -167,8 +176,25 @@ export default function Books() {
       grade_level: book.grade_level || '',
       book_type: book.book_type || BOOK_TYPES.borrow,
     });
+    setBookImagesState(getBookImages(book.id));
     setEditingId(book.id);
     modal.open();
+  };
+
+  const handleAddImages = async (files) => {
+    if (!files?.length) return;
+    try {
+      const dataUrls = await readImageFilesAsDataUrls(files);
+      setBookImagesState((prev) =>
+        [...prev, ...dataUrls].slice(0, MAX_IMAGES_PER_BOOK),
+      );
+    } catch {
+      setError('Failed to read one or more images.');
+    }
+  };
+
+  const handleRemoveImage = (index) => {
+    setBookImagesState((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -195,8 +221,10 @@ export default function Books() {
       };
       if (editingId) {
         await api.updateBook(editingId, payload);
+        setBookImages(editingId, bookImages);
       } else {
-        await api.createBook(payload);
+        const created = await api.createBook(payload);
+        if (created?.id) setBookImages(created.id, bookImages);
       }
       modal.close();
       if (editingId) loadBooks(page);
@@ -216,6 +244,7 @@ export default function Books() {
     if (!confirmed) return;
     try {
       await api.deleteBook(id);
+      removeBookImages(id);
       const nextPage = books.length === 1 && page > 1 ? page - 1 : page;
       if (nextPage !== page) setPage(nextPage);
       else loadBooks(page);
@@ -264,6 +293,10 @@ export default function Books() {
         isOpen={modal.isOpen}
         editingId={editingId}
         form={form}
+        images={bookImages}
+        maxImages={MAX_IMAGES_PER_BOOK}
+        onImagesChange={handleAddImages}
+        onRemoveImage={handleRemoveImage}
         datePickerProps={datePickerProps}
         maxPublicationDate={maxPublicationDate}
         onClose={modal.close}

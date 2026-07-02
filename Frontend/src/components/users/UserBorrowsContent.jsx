@@ -3,6 +3,8 @@ import StatusBadge from 'components/common/StatusBadge';
 import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
 import BorrowStatusTabs from 'components/users/BorrowStatusTabs';
+import BookLinkedCard from 'components/common/BookLinkedCard';
+import { useBookRecordView } from 'hooks/useBookRecordView';
 import { formatDateOnly } from 'utils/formatDate';
 import { getBorrowEmptyMessage } from 'utils/borrowFilterParams';
 
@@ -25,8 +27,24 @@ export default function UserBorrowsContent({
   onPageChange,
   onOpenExtension,
 }) {
+  const { openBookView, BookViewModal } = useBookRecordView();
   const hasSearch = Boolean(search.trim());
   const emptyMessage = getBorrowEmptyMessage(statusFilter, hasSearch);
+
+  const openBorrowView = (row) => {
+    const status = row.is_overdue && row.status !== 'returned' ? 'overdue' : row.status;
+    openBookView(row.book_id, {
+      recordTitle: 'Borrow details',
+      recordDetails: [
+        { label: 'Status', value: status },
+        { label: 'Borrowed', value: formatDateOnly(row.borrow_date) },
+        { label: 'Due', value: formatDateOnly(row.due_date) },
+        ...(row.status === 'returned'
+          ? [{ label: 'Returned', value: formatDateOnly(row.return_date) }]
+          : []),
+      ],
+    });
+  };
 
   return (
     <>
@@ -64,16 +82,37 @@ export default function UserBorrowsContent({
         </div>
       ) : (
         <>
-          <div className="transactions-grid">
+          <div className="transactions-grid transactions-catalog-grid">
             {borrows.map((row) => {
               const status = row.is_overdue && row.status !== 'returned' ? 'overdue' : row.status;
               return (
-                <article key={row.id} className="transaction-card">
-                  <div className="transaction-card-top">
-                    <h3 className="transaction-card-title">{row.book_title}</h3>
-                    <StatusBadge status={status} />
-                  </div>
-
+                <BookLinkedCard
+                  key={row.id}
+                  bookId={row.book_id}
+                  bookTitle={row.book_title}
+                  badge={<StatusBadge status={status} />}
+                  onView={() => openBorrowView(row)}
+                  actions={
+                    row.status !== 'returned' && row.can_extend ? (
+                      <Button variant="secondary" onClick={() => onOpenExtension(row)}>
+                        Extend due date (+14 days)
+                      </Button>
+                    ) : null
+                  }
+                  secondaryActions={
+                    row.status !== 'returned' && !row.can_extend ? (
+                      row.extend_reason ? (
+                        <p className="book-status-limit" style={{ margin: 0, fontSize: '0.875rem', width: '100%' }}>
+                          {row.extend_reason}
+                        </p>
+                      ) : row.is_overdue ? (
+                        <p className="book-status-limit" style={{ margin: 0, fontSize: '0.875rem', width: '100%' }}>
+                          Overdue — pay fine at library
+                        </p>
+                      ) : null
+                    ) : null
+                  }
+                >
                   <dl className="transaction-card-details">
                     <div className="transaction-detail">
                       <dt>Borrowed</dt>
@@ -90,25 +129,7 @@ export default function UserBorrowsContent({
                       </div>
                     )}
                   </dl>
-
-                  {row.status !== 'returned' && (
-                    <div className="transaction-card-actions">
-                      {row.can_extend ? (
-                        <Button variant="secondary" onClick={() => onOpenExtension(row)}>
-                          Extend due date (+14 days)
-                        </Button>
-                      ) : row.extend_reason ? (
-                        <p className="book-status-limit" style={{ margin: 0, fontSize: '0.875rem' }}>
-                          {row.extend_reason}
-                        </p>
-                      ) : row.is_overdue ? (
-                        <p className="book-status-limit" style={{ margin: 0, fontSize: '0.875rem' }}>
-                          Overdue — pay fine at library
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-                </article>
+                </BookLinkedCard>
               );
             })}
           </div>
@@ -124,6 +145,8 @@ export default function UserBorrowsContent({
           />
         </>
       )}
+
+      {BookViewModal}
     </>
   );
 }

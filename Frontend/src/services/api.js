@@ -119,6 +119,8 @@ export const api = {
 
   getBooks: (params) => request(`/books${buildQuery(params)}`),
 
+  getBook: (id) => request(`/books/${id}`),
+
   getBookTypeCounts: (params) => request(`/books/type-counts${buildQuery(params)}`),
 
   getAvailableBooks: () => request("/books/available"),

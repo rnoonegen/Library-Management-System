@@ -1,5 +1,7 @@
 import SearchBar from 'components/common/SearchBar';
 import PageTabs from 'components/common/PageTabs';
+import BookLinkedCard from 'components/common/BookLinkedCard';
+import { useBookRecordView } from 'hooks/useBookRecordView';
 
 const STATUS_TABS = [
   { id: 'all', label: 'All' },
@@ -111,6 +113,36 @@ export default function TransactionsContent({
   onEdit,
   onDelete,
 }) {
+  const { openBookView, BookViewModal } = useBookRecordView();
+
+  const openTxnView = (txn) => {
+    openBookView(txn.book_id, {
+      recordTitle: 'Loan details',
+      recordDetails: [
+        { label: 'User', value: txn.user_name },
+        { label: 'Status', value: txn.status },
+        { label: 'Borrowed', value: formatDate(txn.borrow_date) },
+        { label: 'Due', value: formatDate(txn.due_date) },
+        { label: 'Returned', value: formatDate(txn.return_date) || '—' },
+        { label: 'Daily fine', value: `${formatFine(txn.daily_fine_amount)}/day` },
+        {
+          label: txn.status === 'returned' ? 'Fine paid' : 'Accrued fine',
+          value: `${formatFine(txn.accrued_fine)}${
+            txn.is_overdue && txn.overdue_days > 0
+              ? ` (${txn.overdue_days} day${txn.overdue_days === 1 ? '' : 's'})`
+              : ''
+          }`,
+        },
+        ...(txn.payment_status === 'paid' && txn.status !== 'returned'
+          ? [{
+              label: 'Payment',
+              value: `Received ${formatFine(txn.paid_amount)} on ${formatDate(txn.paid_at)}`,
+            }]
+          : []),
+      ],
+    });
+  };
+
   return (
     <>
       <PageTabs
@@ -153,14 +185,45 @@ export default function TransactionsContent({
         </div>
       ) : (
         <>
-          <div className="transactions-grid">
+          <div className="transactions-grid transactions-catalog-grid">
             {paginatedTransactions.map((txn) => (
-              <article key={txn.id} className="transaction-card">
-                <div className="transaction-card-top">
-                  <h3 className="transaction-card-title">{txn.book_title}</h3>
-                  <StatusBadge status={txn.status} />
-                </div>
-
+              <BookLinkedCard
+                key={txn.id}
+                bookId={txn.book_id}
+                bookTitle={txn.book_title}
+                badge={<StatusBadge status={txn.status} />}
+                onView={() => openTxnView(txn)}
+                actions={
+                  txn.status !== 'returned' ? (
+                    <>
+                      {txn.requires_payment && (
+                        <button type="button" className="btn-primary" onClick={() => onPayment(txn.id)}>
+                          Payment Received
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-success"
+                        onClick={() => onReturn(txn.id)}
+                        disabled={!txn.can_return}
+                        title={txn.requires_payment ? 'Record payment before returning this book' : undefined}
+                      >
+                        Return Book
+                      </button>
+                    </>
+                  ) : null
+                }
+                secondaryActions={
+                  txn.status === 'borrowed' || txn.status === 'overdue' ? (
+                    <>
+                      <button type="button" className="btn-secondary" onClick={() => onEdit(txn)}>Edit</button>
+                      <button type="button" className="btn-danger" onClick={() => onDelete(txn.id)}>Delete</button>
+                    </>
+                  ) : txn.status === 'returned' ? (
+                    <button type="button" className="btn-danger" onClick={() => onDelete(txn.id)}>Delete</button>
+                  ) : null
+                }
+              >
                 <dl className="transaction-card-details">
                   <div className="transaction-detail"><dt>User</dt><dd>{txn.user_name}</dd></div>
                   <div className="transaction-detail"><dt>Borrowed</dt><dd>{formatDate(txn.borrow_date)}</dd></div>
@@ -185,39 +248,7 @@ export default function TransactionsContent({
                     </div>
                   )}
                 </dl>
-
-                {txn.status !== 'returned' && (
-                  <div className="transaction-card-actions">
-                    {txn.requires_payment && (
-                      <button type="button" className="btn-primary" onClick={() => onPayment(txn.id)}>
-                        Payment Received
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn-success"
-                      onClick={() => onReturn(txn.id)}
-                      disabled={!txn.can_return}
-                      title={txn.requires_payment ? 'Record payment before returning this book' : undefined}
-                    >
-                      Return Book
-                    </button>
-                  </div>
-                )}
-
-                {(txn.status === 'borrowed' || txn.status === 'overdue') && (
-                  <div className="transaction-card-actions transaction-card-secondary-actions">
-                    <button type="button" className="btn-secondary" onClick={() => onEdit(txn)}>Edit</button>
-                    <button type="button" className="btn-danger" onClick={() => onDelete(txn.id)}>Delete</button>
-                  </div>
-                )}
-
-                {txn.status === 'returned' && (
-                  <div className="transaction-card-actions transaction-card-secondary-actions">
-                    <button type="button" className="btn-danger" onClick={() => onDelete(txn.id)}>Delete</button>
-                  </div>
-                )}
-              </article>
+              </BookLinkedCard>
             ))}
           </div>
 
@@ -231,6 +262,8 @@ export default function TransactionsContent({
           />
         </>
       )}
+
+      {BookViewModal}
     </>
   );
 }

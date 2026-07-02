@@ -1,72 +1,10 @@
-import SearchBar from 'components/common/SearchBar';
 import Pagination from 'components/common/Pagination';
 import BookTypeTabs from 'components/books/BookTypeTabs';
 import BooksControlsPanel from 'components/books/BooksControlsPanel';
-import { BOOK_TYPE_LABELS, BOOK_TYPES } from 'constants/bookCatalog';
+import BookCatalogCard from 'components/books/BookCatalogCard';
+import BookDetailModal from 'components/books/BookDetailModal';
 import { hasActiveBookFilters } from 'utils/bookFilterParams';
-
-function BookCard({ book, onEdit, onDelete }) {
-  const fmt = (val) => (val == null || val === '' ? '—' : val);
-  const isReference = book.book_type === BOOK_TYPES.reference;
-  const isSell = book.book_type === BOOK_TYPES.sell;
-  const typeBadgeClass = isReference ? 'badge-info' : isSell ? 'badge-warning' : 'badge-borrowed';
-
-  return (
-    <article key={book.id} className="book-card">
-      <div className="book-card-top">
-        <h3 className="book-card-title">{book.title}</h3>
-        <div className="book-card-badges">
-          <span className={`badge ${typeBadgeClass}`}>
-            {BOOK_TYPE_LABELS[book.book_type] || BOOK_TYPE_LABELS.borrow}
-          </span>
-          <span className={book.qty > 0 ? 'badge badge-success' : 'badge badge-danger'}>
-            {book.qty > 0 ? `${book.qty} in stock` : 'Out of stock'}
-          </span>
-        </div>
-      </div>
-
-      <dl className="book-card-details">
-        <div className="book-detail">
-          <dt>ISBN</dt>
-          <dd>{book.isbn}</dd>
-        </div>
-        <div className="book-detail">
-          <dt>Author</dt>
-          <dd>{book.author}</dd>
-        </div>
-        <div className="book-detail">
-          <dt>Publisher</dt>
-          <dd>{fmt(book.publisher)}</dd>
-        </div>
-        <div className="book-detail">
-          <dt>Price</dt>
-          <dd>{book.price != null ? `₹${book.price}` : '—'}</dd>
-        </div>
-        <div className="book-detail">
-          <dt>Subject</dt>
-          <dd>{fmt(book.subject)}</dd>
-        </div>
-        <div className="book-detail">
-          <dt>Language</dt>
-          <dd>{fmt(book.language)}</dd>
-        </div>
-        <div className="book-detail">
-          <dt>Grade</dt>
-          <dd>{fmt(book.grade_level)}</dd>
-        </div>
-      </dl>
-
-      <div className="book-card-actions">
-        <button className="btn-secondary" onClick={() => onEdit(book)}>
-          Edit
-        </button>
-        <button className="btn-danger" onClick={() => onDelete(book.id)}>
-          Delete
-        </button>
-      </div>
-    </article>
-  );
-}
+import { useState } from 'react';
 
 export default function BooksContent({
   books,
@@ -95,6 +33,7 @@ export default function BooksContent({
   onDelete,
   onPageChange,
 }) {
+  const [viewBook, setViewBook] = useState(null);
   const hasFilters = hasActiveBookFilters({ search, subjects, languages, bookType, priceSort });
   const emptyMessage = hasFilters ? 'No books found' : 'No books yet';
   const emptyHint = hasFilters
@@ -135,9 +74,16 @@ export default function BooksContent({
         </div>
       ) : (
         <>
-          <div className="books-grid">
+          <div className="books-grid books-catalog-grid">
             {books.map((book) => (
-              <BookCard key={book.id} book={book} onEdit={onEdit} onDelete={onDelete} />
+              <BookCatalogCard
+                key={book.id}
+                book={book}
+                variant="admin"
+                onView={setViewBook}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
             ))}
           </div>
           <Pagination
@@ -150,6 +96,12 @@ export default function BooksContent({
           />
         </>
       )}
+
+      <BookDetailModal
+        book={viewBook}
+        isOpen={!!viewBook}
+        onClose={() => setViewBook(null)}
+      />
     </>
   );
 }

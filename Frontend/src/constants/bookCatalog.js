@@ -59,3 +59,21 @@ export function mergeCatalogOptions(predefined, fromApi = []) {
     a.localeCompare(b),
   );
 }
+
+export function getBookAvailabilityLabel(book) {
+  const qty = book?.qty ?? 0;
+  const available = qty > 0;
+  const type = book?.book_type || BOOK_TYPES.borrow;
+
+  if (type === BOOK_TYPES.reference) {
+    return available ? 'Available in library' : 'Not available';
+  }
+  if (type === BOOK_TYPES.sell) {
+    return available ? `${qty} for sale` : 'Out of stock';
+  }
+  return available ? `${qty} available` : 'Unavailable';
+}
+
+export function isBookAvailable(book) {
+  return (book?.qty ?? 0) > 0;
+}

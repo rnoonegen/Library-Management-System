@@ -5,6 +5,10 @@ export default function BookFormModal({
   isOpen,
   editingId,
   form,
+  images = [],
+  maxImages,
+  onImagesChange,
+  onRemoveImage,
   datePickerProps,
   maxPublicationDate,
   onClose,
@@ -149,6 +153,44 @@ export default function BookFormModal({
             }}
             {...datePickerProps}
           />
+        </div>
+        <div className="form-group">
+          <label>
+            Book Images
+            <span className="form-label-hint">
+              {' '}
+              (UI only — stored in browser, max {maxImages})
+            </span>
+          </label>
+          {images.length > 0 && (
+            <div className="book-form-image-previews">
+              {images.map((src, i) => (
+                <div key={i} className="book-form-image-preview">
+                  <img src={src} alt="" />
+                  <button
+                    type="button"
+                    className="book-form-image-remove"
+                    onClick={() => onRemoveImage(i)}
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {images.length < maxImages && (
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="book-form-image-input"
+              onChange={(e) => {
+                onImagesChange(e.target.files);
+                e.target.value = '';
+              }}
+            />
+          )}
         </div>
         <div className="form-actions">
           <button type="button" className="btn-secondary" onClick={onClose}>

@@ -95,7 +95,7 @@ export default function UserBorrowsContent({
                   actions={
                     row.status !== 'returned' && row.can_extend ? (
                       <Button variant="secondary" onClick={() => onOpenExtension(row)}>
-                        Extend due date (+14 days)
+                        Renew due date (+14 days)
                       </Button>
                     ) : null
                   }

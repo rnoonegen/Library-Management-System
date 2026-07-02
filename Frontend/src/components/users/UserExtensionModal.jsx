@@ -17,12 +17,12 @@ export default function UserExtensionModal({
   const newDue = selected.extended_due_date?.split('T')[0];
 
   return (
-    <Modal title="Request Extension" onClose={onClose}>
+    <Modal title="Request Renewal" onClose={onClose}>
       <form onSubmit={onSubmit}>
         <p className="text-muted" style={{ marginTop: 0 }}>
-          Extensions add <strong>14 days</strong> to your current due date (once per calendar month, any book).
+          Renewals add <strong>14 days</strong> to your current due date (once per calendar month, any book).
         </p>
-        <div className="extension-summary">
+        <div className="renewal-summary">
           <p><strong>Book:</strong> {selected.book_title}</p>
           <p><strong>Current due:</strong> {currentDue}</p>
           <p className="book-status-owned"><strong>New due date:</strong> {newDue}</p>
@@ -36,7 +36,7 @@ export default function UserExtensionModal({
         <div className="form-actions">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? 'Submitting...' : 'Request extension'}
+            {submitting ? 'Submitting...' : 'Request renewal'}
           </Button>
         </div>
       </form>

@@ -25,7 +25,7 @@ export default function AdminRequestsPanel({
           { id: 'summary', label: 'Queue overview', count: queueSummary.length },
           { id: 'ready', label: 'Ready for pickup', count: readyBorrowCount },
           { id: 'purchase', label: 'Purchase orders', count: activePurchaseCount },
-          { id: 'extension', label: 'Extensions', count: extensionRequests.length },
+          { id: 'renewal', label: 'Renewal', count: extensionRequests.length },
         ]}
         activeId={tab}
         onChange={onTabChange}
@@ -148,7 +148,7 @@ export default function AdminRequestsPanel({
             </div>
           )
         ) : extensionRequests.length === 0 ? (
-          <p className="text-muted">No pending extension requests.</p>
+          <p className="text-muted">No pending renewal requests.</p>
         ) : (
           <div className="table-wrap">
             <table className="data-table">

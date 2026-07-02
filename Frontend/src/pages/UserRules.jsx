@@ -26,11 +26,11 @@ const ruleSections = [
     ],
   },
   {
-    title: 'Extensions',
+    title: 'Renewal',
     items: [
-      `You may request up to ${MAX_EXTENSIONS_PER_MONTH} extension per calendar month.`,
-      `An approved extension adds another ${LOAN_DAYS} days to the due date.`,
-      'Submit extension requests from My Borrows before the due date.',
+      `You may request up to ${MAX_EXTENSIONS_PER_MONTH} renewal per calendar month.`,
+      `An approved renewal adds another ${LOAN_DAYS} days to the due date.`,
+      'Submit renewal requests from My Borrows before the due date.',
       'Overdue books must have fines settled before return.',
     ],
   },

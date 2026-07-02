@@ -3008,13 +3008,13 @@ video {
 .book-status-limit { color: #dc2626; font-weight: 600; font-size: 0.875rem; }
 .book-status-muted { color: var(--text-muted); font-size: 0.875rem; }
 .book-status-unavailable { color: var(--text-muted); }
-.extension-summary {
+.renewal-summary {
   background: var(--surface-hover);
   border-radius: var(--radius);
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
-.extension-summary p { margin: 0.35rem 0; }
+.renewal-summary p { margin: 0.35rem 0; }
 [data-theme="dark"] .book-status-owned,
 [data-theme="dark"] .book-status-limit { color: #f87171; }
 `;

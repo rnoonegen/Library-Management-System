@@ -240,26 +240,26 @@ async function submitExtensionRequest(userId, { borrowId, reason }) {
   if (!borrow) throw new AppError("Borrow record not found", 404);
   if (borrow.user_id !== userId) throw new AppError("Access denied", 403);
   if (borrow.status === "returned") {
-    throw new AppError("Cannot extend a returned loan", 400);
+    throw new AppError("Cannot renew a returned loan", 400);
   }
 
   const today = getTodayDateOnly();
   if (isOverdue(borrow.due_date, today)) {
-    throw new AppError("Cannot extend an overdue loan — fines apply", 400);
+    throw new AppError("Cannot renew an overdue loan — fines apply", 400);
   }
 
   const holdsOnBook = await borrowRequestRepository.countActiveHoldsByBook(borrow.book_id);
   if (holdsOnBook > 0) {
-    throw new AppError("Cannot extend — another user is waiting for this book", 400);
+    throw new AppError("Cannot renew — another user is waiting for this book", 400);
   }
 
   const pendingForUser = await extensionRequestRepository.findPendingByUserId(userId);
   if (pendingForUser) {
-    throw new AppError("You already have a pending extension request", 400);
+    throw new AppError("You already have a pending renewal request", 400);
   }
 
   const pending = await extensionRequestRepository.findPendingByBorrowId(borrowId);
-  if (pending) throw new AppError("A pending extension request already exists", 400);
+  if (pending) throw new AppError("A pending renewal request already exists", 400);
 
   const now = new Date();
   const approvedThisMonth = await extensionRequestRepository.countApprovedInMonth(
@@ -268,7 +268,7 @@ async function submitExtensionRequest(userId, { borrowId, reason }) {
     now.getMonth() + 1,
   );
   if (approvedThisMonth >= MAX_EXTENSIONS_PER_MONTH) {
-    throw new AppError("You have already used your one extension for this month", 400);
+    throw new AppError("You have already used your one renewal for this month", 400);
   }
 
   const currentDueDate = borrow.due_date?.split?.("T")[0] || borrow.due_date;
@@ -288,15 +288,15 @@ async function submitExtensionRequest(userId, { borrowId, reason }) {
   await notificationService.createNotification({
     userId,
     type: "extension_submitted",
-    title: "Extension requested",
-    message: `Your extension for "${created.book_title}" is pending admin approval (new due: ${requestedDueDate}).`,
+    title: "Renewal requested",
+    message: `Your renewal for "${created.book_title}" is pending admin approval (new due: ${requestedDueDate}).`,
     relatedId: id,
   });
 
   await notificationService.notifyAdmins({
     type: "admin_extension_request",
-    title: "Extension request",
-    message: `${user?.name || "A user"} requested a ${LOAN_DAYS}-day extension for "${created.book_title}" (new due: ${requestedDueDate}).`,
+    title: "Renewal request",
+    message: `${user?.name || "A user"} requested a ${LOAN_DAYS}-day renewal for "${created.book_title}" (new due: ${requestedDueDate}).`,
     relatedId: id,
   });
 
@@ -345,8 +345,8 @@ async function reviewExtensionRequest(id, adminId, { action, adminNote }) {
     await notificationService.createNotification({
       userId: request.user_id,
       type: "extension_rejected",
-      title: "Extension denied",
-      message: `Extension for "${request.book_title}" was denied.${adminNote ? ` Note: ${adminNote}` : ""}`,
+      title: "Renewal denied",
+      message: `Renewal for "${request.book_title}" was denied.${adminNote ? ` Note: ${adminNote}` : ""}`,
       relatedId: id,
     });
     return extensionRequestRepository.findById(id);
@@ -357,12 +357,12 @@ async function reviewExtensionRequest(id, adminId, { action, adminNote }) {
 
   const today = getTodayDateOnly();
   if (isOverdue(borrow.due_date, today)) {
-    throw new AppError("Cannot approve extension for an overdue loan", 400);
+    throw new AppError("Cannot approve renewal for an overdue loan", 400);
   }
 
   const holdsOnBook = await borrowRequestRepository.countActiveHoldsByBook(borrow.book_id);
   if (holdsOnBook > 0) {
-    throw new AppError("Cannot approve extension — holds exist for this book", 400);
+    throw new AppError("Cannot approve renewal — holds exist for this book", 400);
   }
 
   const now = new Date();
@@ -372,7 +372,7 @@ async function reviewExtensionRequest(id, adminId, { action, adminNote }) {
     now.getMonth() + 1,
   );
   if (approvedThisMonth >= MAX_EXTENSIONS_PER_MONTH) {
-    throw new AppError("User has already used their one extension for this month", 400);
+    throw new AppError("User has already used their one renewal for this month", 400);
   }
 
   const newDueDate = formatDateOnly(request.requested_due_date);
@@ -392,8 +392,8 @@ async function reviewExtensionRequest(id, adminId, { action, adminNote }) {
   await notificationService.createNotification({
     userId: request.user_id,
     type: "extension_approved",
-    title: "Extension approved",
-    message: `Due date for "${request.book_title}" extended to ${newDueDate}.`,
+    title: "Renewal approved",
+    message: `Due date for "${request.book_title}" renewed to ${newDueDate}.`,
     relatedId: id,
   });
 
@@ -441,10 +441,10 @@ async function getMyBorrows(userId) {
         extendReason = "Overdue — pay fine at library first";
       } else if (extensionQuotaUsed) {
         canExtend = false;
-        extendReason = "Monthly extension already used";
+        extendReason = "Monthly renewal already used";
       } else if (hasPendingExtension) {
         canExtend = false;
-        extendReason = "Extension request pending review";
+        extendReason = "Renewal request pending review";
       } else {
         const holdsOnBook = holdCounts.get(row.book_id) || 0;
         if (holdsOnBook > 0) {

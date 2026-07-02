@@ -83,7 +83,7 @@ function PurchaseCard({ row, onCancelPurchase, onView }) {
   );
 }
 
-function ExtensionCard({ row, onView }) {
+function RenewalCard({ row, onView }) {
   return (
     <BookLinkedCard
       bookId={row.book_id}
@@ -159,9 +159,9 @@ export default function UserRequestsPanel({
     });
   };
 
-  const openExtensionView = (row) => {
+  const openRenewalView = (row) => {
     openBookView(row.book_id, {
-      recordTitle: 'Extension details',
+      recordTitle: 'Renewal details',
       recordDetails: [
         { label: 'Status', value: row.status },
         { label: 'Requested due', value: formatDateOnly(row.requested_due_date) },
@@ -189,14 +189,14 @@ export default function UserRequestsPanel({
       onPageChange: onPurchasePageChange,
       label: 'purchase orders',
     },
-    extension: {
+    renewal: {
       list: extensionRequests,
       pagination: extensionPagination,
       search: extensionSearch,
       totalAll: extensionTotalAll,
       onSearchChange: onExtensionSearchChange,
       onPageChange: onExtensionPageChange,
-      label: 'extension requests',
+      label: 'renewal requests',
     },
   };
 
@@ -208,7 +208,7 @@ export default function UserRequestsPanel({
         tabs={[
           { id: 'borrow', label: 'Waitlist', count: borrowTotalAll },
           { id: 'purchase', label: 'Purchases', count: purchaseTotalAll },
-          { id: 'extension', label: 'Extensions', count: extensionTotalAll },
+          { id: 'renewal', label: 'Renewal', count: extensionTotalAll },
         ]}
         activeId={tab}
         onChange={onTabChange}
@@ -243,14 +243,14 @@ export default function UserRequestsPanel({
                 ? 'No waitlist entries yet'
                 : tab === 'purchase'
                   ? 'No purchase orders yet'
-                  : 'No extension requests yet'}
+                  : 'No renewal requests yet'}
             </strong>
             <p>
               {tab === 'borrow'
                 ? 'Join a waitlist from the Books page when a title is unavailable.'
                 : tab === 'purchase'
                   ? 'Order books from the Sell tab on the Books page.'
-                  : 'Request an extension from My Borrows when eligible.'}
+                  : 'Request a renewal from My Borrows when eligible.'}
             </p>
           </div>
         ) : active.list.length === 0 ? (
@@ -281,10 +281,10 @@ export default function UserRequestsPanel({
                       />
                     ))
                   : active.list.map((row) => (
-                      <ExtensionCard
+                      <RenewalCard
                         key={row.id}
                         row={row}
-                        onView={() => openExtensionView(row)}
+                        onView={() => openRenewalView(row)}
                       />
                     ))}
             </div>

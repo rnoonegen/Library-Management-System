@@ -72,8 +72,8 @@ export default function Requests() {
     try {
       if (action === 'approve') {
         const confirmed = await askConfirm({
-          title: 'Approve extension',
-          message: 'Extend the due date for this borrow as requested?',
+          title: 'Approve renewal',
+          message: 'Renew the due date for this borrow as requested?',
           confirmLabel: 'Approve',
           variant: 'primary',
         });
@@ -81,8 +81,8 @@ export default function Requests() {
         await api.reviewExtensionRequest(id, { action });
       } else {
         const adminNote = await askReason({
-          title: 'Reject extension',
-          message: 'The user will be notified that their extension request was denied.',
+          title: 'Reject renewal',
+          message: 'The user will be notified that their renewal request was denied.',
           reasonLabel: 'Rejection reason',
           placeholder: 'Enter a reason (optional)',
           submitLabel: 'Submit',
